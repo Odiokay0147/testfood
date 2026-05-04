@@ -7,3 +7,13 @@ class OrderCreate(BaseModel):
     quantity: int
     schedule_type: str
     delivery_date: datetime
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class UserLogin(BaseModel):
+    email: str
+    password: str
