@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#FF6B35"/>
+<title>Prep & Go — Order Food Ahead</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div class="screen active" id="screen-login">
+  <div class="auth-screen">
+    <div class="auth-logo">Prep <span>&</span> Go</div>
+    <div class="auth-tagline">Order food ahead — pay small, chop well 🍽️</div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Enter your details to continue</div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="your@email.com"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="••••••••"/></div>
+    <button class="btn-primary" onclick="doLogin()">Enter App</button>
+    <div class="auth-switch">New here? <a href="#" onclick="showScreen('screen-signup')">Create account</a></div>
+  </div>
+</div>
+
+<!-- SIGNUP -->
+<div class="screen" id="screen-signup">
+  <div class="auth-screen">
+    <div class="auth-logo">Prep <span>&</span> Go</div>
+    <div class="auth-tagline">Join us — make food stress disappear 🙌</div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Fill in your details to get started</div>
+    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="signup-name" placeholder="Kwame Mensah"/></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="signup-email" placeholder="your@email.com"/></div>
+    <div class="form-group"><label class="form-label">WhatsApp Number</label><input class="form-input" type="tel" id="signup-phone" placeholder="+2348012345678"/></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="signup-password" placeholder="Min 8 characters"/></div>
+    <button class="btn-primary" onclick="doSignup()">Create My Account</button>
+    <div class="auth-switch">Get account already? <a href="#" onclick="showScreen('screen-login')">Enter here</a></div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="screen-home">
+  <div class="topbar">
+    <div class="topbar-logo">Prep <span>&</span> Go</div>
+    <div class="avatar-btn" id="avatarBtn">K</div>
+  </div>
+  <div class="hero">
+    <div class="hero-tag">🔥 Food Pre-Order</div>
+    <h1>Chop better,<br/>plan sharp</h1>
+    <p>Order ahead, pay small deposit — your food go dey ready when you reach.</p>
+    <div class="hero-pills"><span class="hero-pill">⏱ Hourly</span><span class="hero-pill">📅 Daily</span><span class="hero-pill">🗓 Weekly</span></div>
+  </div>
+  <div class="section-title">Choose Your Vendor</div>
+  <div class="vendor-cards" id="vendorCards"></div>
+  <div class="how-section">
+    <h3>How e work?</h3>
+    <div class="how-steps">
+      <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Pick your food</strong><span>Choose from any vendor menu</span></div></div>
+      <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Pay small deposit</strong><span>Lock your order with 30–50% deposit</span></div></div>
+      <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>We go remind you</strong><span>WhatsApp reminder the day before delivery</span></div></div>
+      <div class="how-step"><div class="how-num">4</div><div class="how-text"><strong>Receive your food</strong><span>Pay balance, collect your order 🔥</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MENU -->
+<div class="screen" id="screen-menu">
+  <div class="menu-header">
+    <button class="back-btn" onclick="showScreen('screen-home')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div><div class="menu-vendor-name" id="menuVendorName">Vendor</div><div class="menu-vendor-sub">Select your meals</div></div>
+  </div>
+  <div class="category-tabs" id="categoryTabs"></div>
+  <div class="meal-list" id="mealList"></div>
+  <div class="cart-bar hidden" id="cartBar">
+    <div class="cart-bar-left"><span id="cartCount">0 items</span><strong id="cartTotal">GHS 0.00</strong></div>
+    <button class="cart-bar-btn" onclick="goToOrder()">Order Now →</button>
+  </div>
+</div>
+
+<!-- ORDER -->
+<div class="screen" id="screen-order">
+  <div class="topbar">
+    <button class="back-btn" onclick="showScreen('screen-menu')">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="topbar-logo" style="font-size:1rem">Complete Order</div>
+    <div style="width:36px"></div>
+  </div>
+  <div class="order-screen">
+    <div class="section-title" style="padding-left:0">Your Items</div>
+    <div class="order-summary-card" id="orderSummaryCard"></div>
+    <div class="section-title" style="padding-left:0">Delivery Schedule</div>
+    <div class="schedule-chips">
+      <div class="schedule-chip selected" onclick="selectSchedule(this,'hourly')"><span class="chip-icon">⏱</span><span class="chip-label">Hourly</span><span class="chip-sub">30% deposit</span></div>
+      <div class="schedule-chip" onclick="selectSchedule(this,'daily')"><span class="chip-icon">📅</span><span class="chip-label">Daily</span><span class="chip-sub">40% deposit</span></div>
+      <div class="schedule-chip" onclick="selectSchedule(this,'weekly')"><span class="chip-icon">🗓</span><span class="chip-label">Weekly</span><span class="chip-sub">50% deposit</span></div>
+    </div>
+    <div style="margin-top:16px" class="form-group"><label class="form-label">Delivery Date</label><input class="form-input" type="date" id="deliveryDate"/></div>
+    <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" type="time" id="deliveryTime"/></div>
+    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" id="orderNotes" placeholder="e.g. No pepper, extra sauce..."/></div>
+    <div class="divider"></div>
+    <div class="section-title" style="padding-left:0">Payment Type</div>
+    <div class="payment-options">
+      <div class="payment-option selected" onclick="selectPayment(this,'deposit')">
+        <span class="payment-option-icon">💳</span>
+        <div class="payment-option-text"><strong>Pay Deposit First</strong><span>Lock order with small deposit. Pay balance on delivery day.</span></div>
+        <span class="payment-badge">Recommended</span>
+      </div>
+      <div class="payment-option" onclick="selectPayment(this,'full')">
+        <span class="payment-option-icon">✅</span>
+        <div class="payment-option-text"><strong>Pay in Full</strong><span>Pay everything now. No balance due.</span></div>
+      </div>
+    </div>
+    <div class="deposit-info" id="depositInfo">
+      <span class="deposit-info-icon">💡</span>
+      <div class="deposit-info-text" id="depositInfoText">Loading...</div>
+    </div>
+    <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()">Place Order & Pay Deposit</button>
+  </div>
+</div>
+
+<!-- CONFIRMATION -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-screen">
+    <div class="confirm-success">
+      <div class="confirm-icon">✅</div>
+      <h2>Order Confirmed!</h2>
+      <p>Your food don dey secured. We go WhatsApp you the day before delivery to remind you about your balance.</p>
+    </div>
+    <div class="confirm-ref"><div class="confirm-ref-label">Order Reference</div><div class="confirm-ref-value" id="confirmRef">PG-XXXX</div></div>
+    <div class="confirm-breakdown" id="confirmBreakdown"></div>
+    <div class="whatsapp-note">
+      <span style="font-size:1.2rem">📱</span>
+      <div class="whatsapp-note-text"><strong>WhatsApp reminder activated</strong>You go receive reminder the day before delivery. Pay balance before dispatch.</div>
+    </div>
+    <button class="btn-primary green" onclick="showScreen('screen-orders');loadOrders()">View My Orders</button>
+    <button class="btn-primary ghost" style="margin-top:10px" onclick="showScreen('screen-home')">Back to Home</button>
+  </div>
+</div>
+
+<!-- MY ORDERS -->
+<div class="screen" id="screen-orders">
+  <div class="topbar"><div class="topbar-logo">My Orders</div></div>
+  <div class="orders-screen"><div id="ordersList"></div></div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottomNav" style="display:none">
+  <button class="nav-btn active" onclick="navTo('screen-home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Home
+  </button>
+  <button class="nav-btn" onclick="navTo('screen-orders',this);loadOrders()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+    My Orders
+  </button>
+  <button class="nav-btn" onclick="doLogout()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Logout
+  </button>
+</nav>
+<script src="app.js"></script>
+</body>
+</html>

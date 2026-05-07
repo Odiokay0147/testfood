@@ -1,8 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from typing import Optional
+import os
 
 from app.database import SessionLocal, engine
 import app.models as models
@@ -20,6 +23,13 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Prep & Go — Food Pre-Order API", version="2.0.0")
 
 bearer_scheme = HTTPBearer()
+
+# Serve frontend HTML
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+
+@app.get("/app", include_in_schema=False)
+def serve_frontend():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
 # ─────────────────────────────────────────────
@@ -62,9 +72,9 @@ def startup_event():
     if not db.query(models.Vendor).first():
         # Vendor 1 — Chaf'N
         chafn = models.Vendor(
-            name="Chef'N",
+            name="Chaf'N",
             description="Home-cooked meals with authentic local flavours. Freshly prepared daily.",
-            phone="+2349131884874",
+            phone="+233200000001",
         )
         db.add(chafn)
         db.flush()
@@ -83,9 +93,9 @@ def startup_event():
 
         # Vendor 2 — Ur Cravings Crunches
         ucc = models.Vendor(
-            name="Cravings Crunches",
+            name="Ur Cravings Crunches",
             description="Street-style bites and crunchy favourites. Satisfying every craving.",
-            phone="+2348147078509",
+            phone="+233200000002",
         )
         db.add(ucc)
         db.flush()
