@@ -7,8 +7,172 @@
 <title>Prep & Go — Order Food Ahead</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="style.css">
-
+<style>
+:root{--brand:#FF6B35;--brand2:#2D6A4F;--brand-light:#FFF0EB;--accent:#FFB703;--r:16px;--rcard:20px;--shadow:0 4px 24px rgba(0,0,0,.08);--bg:#F7F4F0;--surface:#FFFFFF;--surface2:#F0EDE8;--text:#1A1208;--text2:#6B6358;--border:rgba(0,0,0,.08);--card-bg:#FFFFFF}
+@media(prefers-color-scheme:dark){:root{--bg:#111008;--surface:#1E1B12;--surface2:#2A2618;--text:#F5F0E8;--text2:#9E9880;--border:rgba(255,255,255,.08);--card-bg:#1E1B12}}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,select{font-family:inherit;font-size:1rem}
+h1,h2,h3{font-family:'Syne',sans-serif}
+.screen{display:none;min-height:100vh;padding-bottom:90px;animation:fadeUp .35s ease}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;padding:10px 0 max(10px,env(safe-area-inset-bottom));z-index:100}
+.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.65rem;font-weight:500;color:var(--text2);padding:4px 16px;transition:all .2s}
+.nav-btn.active{color:var(--brand)}
+.nav-btn svg{width:22px;height:22px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;position:sticky;top:0;z-index:50;background:var(--bg)}
+.topbar-logo{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--brand);letter-spacing:-0.5px}
+.topbar-logo span{color:var(--text)}
+.avatar-btn{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.hero{margin:8px 20px 24px;background:linear-gradient(135deg,var(--brand) 0%,#E85D04 100%);border-radius:24px;padding:28px 24px;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;right:-20px;top:-20px;width:140px;height:140px;background:rgba(255,255,255,.1);border-radius:50%}
+.hero-tag{font-size:.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:10px}
+.hero h1{font-size:1.7rem;font-weight:800;line-height:1.15;margin-bottom:6px}
+.hero p{font-size:.88rem;opacity:.9;line-height:1.5}
+.hero-pills{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hero-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:500}
+.section-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;padding:0 20px 14px}
+.vendor-cards{display:flex;flex-direction:column;gap:16px;padding:0 20px}
+.vendor-card{background:var(--card-bg);border-radius:var(--rcard);padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s;border:1px solid var(--border)}
+.vendor-card:active{transform:scale(.98)}
+.vendor-card-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.vendor-emoji{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0}
+.vendor-info h3{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700}
+.vendor-info p{font-size:.8rem;color:var(--text2);margin-top:2px;line-height:1.4}
+.vendor-tags{display:flex;gap:6px;flex-wrap:wrap}
+.vtag{font-size:.7rem;font-weight:500;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--text2)}
+.vendor-cta{margin-top:14px;background:var(--brand);color:#fff;padding:11px;border-radius:12px;text-align:center;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700}
+.vendor-card:nth-child(2) .vendor-cta{background:var(--brand2)}
+.vendor-card:nth-child(2) .vendor-emoji{background:#E8F4F0}
+.vendor-card:nth-child(1) .vendor-emoji{background:#FFF0EB}
+.how-section{margin:28px 20px 0;background:var(--surface2);border-radius:var(--rcard);padding:20px}
+.how-section h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:14px}
+.how-steps{display:flex;flex-direction:column;gap:12px}
+.how-step{display:flex;align-items:flex-start;gap:12px}
+.how-num{width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.how-text strong{font-size:.88rem;display:block}
+.how-text span{font-size:.78rem;color:var(--text2)}
+.menu-header{padding:16px 20px 12px;display:flex;align-items:center;gap:12px}
+.back-btn{width:36px;height:36px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.menu-vendor-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700}
+.menu-vendor-sub{font-size:.75rem;color:var(--text2)}
+.category-tabs{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none}
+.category-tabs::-webkit-scrollbar{display:none}
+.cat-tab{padding:7px 16px;border-radius:20px;white-space:nowrap;font-size:.8rem;font-weight:500;background:var(--surface2);color:var(--text2);transition:all .2s;flex-shrink:0;cursor:pointer}
+.cat-tab.active{background:var(--brand);color:#fff}
+.meal-list{display:flex;flex-direction:column;gap:12px;padding:0 20px}
+.meal-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+.meal-emoji{width:56px;height:56px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
+.meal-info{flex:1;min-width:0}
+.meal-info h4{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:2px}
+.meal-info p{font-size:.75rem;color:var(--text2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meal-price{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--brand);margin-top:4px}
+.meal-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.qty-btn{width:30px;height:30px;border-radius:10px;background:var(--surface2);color:var(--text);font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .15s;cursor:pointer}
+.qty-btn.add{background:var(--brand);color:#fff}
+.qty-count{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;min-width:16px;text-align:center}
+.cart-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:390px;background:var(--brand);color:#fff;border-radius:16px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 32px rgba(255,107,53,.35);z-index:90}
+.cart-bar.hidden{display:none}
+.cart-bar-left{font-size:.8rem;opacity:.9}
+.cart-bar-left strong{font-family:'Syne',sans-serif;font-size:1rem;display:block}
+.cart-bar-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer}
+.order-screen{padding:0 20px}
+.order-screen .section-title{padding:16px 0 14px}
+.order-summary-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);margin-bottom:20px}
+.order-item-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.order-item-row:last-child{border-bottom:none}
+.order-total-row{display:flex;justify-content:space-between;padding-top:10px;margin-top:4px;font-family:'Syne',sans-serif;font-weight:700;font-size:1rem}
+.form-group{margin-bottom:16px}
+.form-label{font-size:.78rem;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:7px}
+.form-input{width:100%;padding:13px 16px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-size:.95rem;transition:border-color .2s;outline:none}
+.form-input:focus{border-color:var(--brand)}
+.schedule-chips{display:flex;gap:8px}
+.schedule-chip{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:var(--surface2);border:2px solid transparent;cursor:pointer;transition:all .2s}
+.schedule-chip.selected{background:var(--brand-light);border-color:var(--brand)}
+@media(prefers-color-scheme:dark){.schedule-chip.selected{background:#3A1A0A}}
+.chip-icon{font-size:1.4rem;display:block;margin-bottom:4px}
+.chip-label{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;display:block}
+.chip-sub{font-size:.65rem;color:var(--text2);display:block;margin-top:2px}
+.payment-options{display:flex;flex-direction:column;gap:10px}
+.payment-option{padding:14px 16px;border-radius:14px;background:var(--card-bg);border:2px solid var(--border);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
+.payment-option.selected{border-color:var(--brand);background:var(--brand-light)}
+@media(prefers-color-scheme:dark){.payment-option.selected{background:#3A1A0A}}
+.payment-option-icon{font-size:1.4rem}
+.payment-option-text strong{font-size:.9rem;display:block}
+.payment-option-text span{font-size:.75rem;color:var(--text2)}
+.payment-badge{margin-left:auto;font-size:.65rem;font-weight:700;background:var(--accent);color:#1A1208;padding:3px 8px;border-radius:20px}
+.deposit-info{background:linear-gradient(135deg,#FFF8E7,#FFF0EB);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;margin:16px 0;display:flex;gap:10px}
+@media(prefers-color-scheme:dark){.deposit-info{background:linear-gradient(135deg,#2A2410,#2A1A10)}}
+.deposit-info-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
+.deposit-info-text{font-size:.82rem;line-height:1.5;color:var(--text2)}
+.deposit-info-text strong{color:var(--text)}
+.btn-primary{width:100%;padding:15px;border-radius:var(--r);background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.3px;transition:opacity .2s,transform .1s;margin-top:8px;cursor:pointer}
+.btn-primary:active{transform:scale(.98);opacity:.9}
+.btn-primary.green{background:var(--brand2)}
+.btn-primary.ghost{background:var(--surface2);color:var(--text)}
+.confirm-screen{padding:0 20px}
+.confirm-success{text-align:center;padding:32px 20px 24px}
+.confirm-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#2D6A4F,#40916C);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 8px 24px rgba(45,106,79,.3)}
+.confirm-success h2{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:6px}
+.confirm-success p{font-size:.88rem;color:var(--text2);line-height:1.5}
+.confirm-ref{background:var(--surface2);border-radius:14px;padding:12px 16px;text-align:center;margin:16px 0}
+.confirm-ref-label{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:1px}
+.confirm-ref-value{font-family:'Syne',sans-serif;font-size:1.2rem;font-weight:800;color:var(--brand);letter-spacing:1px}
+.confirm-breakdown{background:var(--card-bg);border-radius:var(--rcard);border:1px solid var(--border);padding:16px;margin-bottom:16px}
+.confirm-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:.88rem}
+.confirm-row:last-child{border-bottom:none}
+.confirm-row.highlight{font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--brand)}
+.confirm-row span:first-child{color:var(--text2)}
+.whatsapp-note{background:#E8F5E9;border-radius:14px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;margin-bottom:16px}
+@media(prefers-color-scheme:dark){.whatsapp-note{background:#0D2010}}
+.whatsapp-note-text{font-size:.8rem;line-height:1.5;color:var(--text2)}
+.whatsapp-note-text strong{color:var(--text);display:block;margin-bottom:2px}
+.orders-screen{padding:0 20px}
+.order-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
+.order-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.order-card-ref{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--brand)}
+.status-badge{font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.status-pending{background:#FFF3CD;color:#856404}
+.status-confirmed{background:#D1FAE5;color:#065F46}
+.status-dispatched{background:#DBEAFE;color:#1E40AF}
+.status-delivered{background:#F0FDF4;color:#166534}
+.status-cancelled{background:#FEE2E2;color:#991B1B}
+.order-card-vendor{font-size:.82rem;color:var(--text2);margin-bottom:6px}
+.order-card-vendor strong{color:var(--text)}
+.order-card-items{font-size:.8rem;color:var(--text2);margin-bottom:10px;line-height:1.5}
+.order-card-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border)}
+.order-card-total{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem}
+.order-card-date{font-size:.75rem;color:var(--text2)}
+.balance-alert{background:linear-gradient(135deg,#FFF8E7,#FFEDD5);border:1px solid var(--accent);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:.78rem;display:flex;gap:8px;align-items:center}
+@media(prefers-color-scheme:dark){.balance-alert{background:linear-gradient(135deg,#2A2410,#2A1800)}}
+.balance-alert-text{color:var(--text2);flex:1}
+.balance-alert-text strong{color:var(--text);display:block}
+.pay-balance-btn{background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-size:.72rem;font-weight:700;padding:6px 12px;border-radius:8px;white-space:nowrap;flex-shrink:0;cursor:pointer}
+.empty-state{text-align:center;padding:60px 20px}
+.empty-state-icon{font-size:3.5rem;margin-bottom:12px}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:6px}
+.empty-state p{font-size:.85rem;color:var(--text2);line-height:1.5}
+.auth-screen{min-height:100vh;padding:40px 24px 24px;display:flex;flex-direction:column}
+.auth-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--brand);margin-bottom:4px}
+.auth-logo span{color:var(--text)}
+.auth-tagline{font-size:.88rem;color:var(--text2);margin-bottom:36px;line-height:1.5}
+.auth-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px}
+.auth-sub{font-size:.85rem;color:var(--text2);margin-bottom:28px}
+.auth-switch{text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2)}
+.auth-switch a{color:var(--brand);font-weight:500;text-decoration:none}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:12px;font-size:.85rem;font-weight:500;z-index:999;transition:transform .3s;white-space:nowrap;max-width:calc(100% - 40px);text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:#2D6A4F;color:#fff}
+.toast.error{background:#DC2626;color:#fff}
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:999}
+.loading-overlay.show{display:flex}
+.spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{height:1px;background:var(--border);margin:20px 0}
+</style>
 </head>
 <body>
 
@@ -168,6 +332,225 @@
     Logout
   </button>
 </nav>
-<script src="app.js"></script>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('pg_token')||null;
+let currentUser = JSON.parse(localStorage.getItem('pg_user')||'null');
+let currentVendor = null;
+let cart = {};
+let selectedSchedule = 'hourly';
+let selectedPayment = 'deposit';
+const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
+
+window.addEventListener('DOMContentLoaded',()=>{
+  if(token && currentUser) showMainApp();
+  const d = document.getElementById('deliveryDate');
+  if(d){const t=new Date();t.setDate(t.getDate()+1);d.min=t.toISOString().split('T')[0];}
+});
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function navTo(id,btn){showScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+function showMainApp(){document.getElementById('bottomNav').style.display='flex';if(currentUser)document.getElementById('avatarBtn').textContent=(currentUser.name||'U')[0].toUpperCase();showScreen('screen-home');loadVendors();}
+
+async function apiFetch(path,opts={}){
+  const h={'Content-Type':'application/json'};
+  if(token)h['Authorization']=`Bearer ${token}`;
+  const r=await fetch(API+path,{...opts,headers:h});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.detail||'Something went wrong');
+  return d;
+}
+
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000);}
+function showLoading(v){document.getElementById('loadingOverlay').classList.toggle('show',v);}
+
+async function doSignup(){
+  const name=document.getElementById('signup-name').value.trim();
+  const email=document.getElementById('signup-email').value.trim();
+  const phone=document.getElementById('signup-phone').value.trim();
+  const password=document.getElementById('signup-password').value;
+  if(!name||!email||!phone||!password)return showToast('Fill all fields','error');
+  showLoading(true);
+  try{await apiFetch('/signup',{method:'POST',body:JSON.stringify({name,email,phone,password})});showToast('Account created! Login now 🎉','success');showScreen('screen-login');document.getElementById('login-email').value=email;}
+  catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const password=document.getElementById('login-password').value;
+  if(!email||!password)return showToast('Enter email and password','error');
+  showLoading(true);
+  try{const d=await apiFetch('/login',{method:'POST',body:JSON.stringify({email,password})});token=d.access_token;currentUser=d.user;localStorage.setItem('pg_token',token);localStorage.setItem('pg_user',JSON.stringify(currentUser));showToast('Welcome back! 🙌','success');showMainApp();}
+  catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+function doLogout(){token=null;currentUser=null;localStorage.removeItem('pg_token');localStorage.removeItem('pg_user');document.getElementById('bottomNav').style.display='none';showScreen('screen-login');showToast('You don logout');}
+
+async function loadVendors(){
+  try{
+    const vendors=await apiFetch('/vendors');
+    const colors=['#FF6B35','#2D6A4F'];
+    const emojis=['🥘','🍟'];
+    document.getElementById('vendorCards').innerHTML=vendors.map((v,i)=>`
+      <div class="vendor-card" onclick="openVendor(${v.id},'${esc(v.name)}','${esc(v.description||'')}')">
+        <div class="vendor-card-top">
+          <div class="vendor-emoji" style="background:${colors[i]}20">${emojis[i]}</div>
+          <div class="vendor-info"><h3>${esc(v.name)}</h3><p>${esc(v.description||'Delicious meals available')}</p></div>
+        </div>
+        <div class="vendor-tags"><span class="vtag">Pre-Order</span><span class="vtag">Deposit Option</span><span class="vtag">WhatsApp Reminder</span></div>
+        <div class="vendor-cta">See Menu & Order →</div>
+      </div>`).join('');
+  }catch(e){showToast('No fit load vendors','error');}
+}
+
+async function openVendor(id,name,desc){
+  cart={};currentVendor={id,name};
+  document.getElementById('menuVendorName').textContent=name;
+  updateCartBar();showScreen('screen-menu');
+  showLoading(true);
+  try{const data=await apiFetch(`/vendors/${id}/menu`);renderMenu(data);}
+  catch(e){showToast('No fit load menu','error');}
+  showLoading(false);
+}
+
+function renderMenu(meals){
+  const cats=[...new Set(meals.map(m=>m.category))];
+  document.getElementById('categoryTabs').innerHTML=['All',...cats].map((c,i)=>`<div class="cat-tab ${i===0?'active':''}" onclick="filterCat(this,'${c}')">${c}</div>`).join('');
+  window._meals=meals;renderMealCards(meals);
+}
+
+function filterCat(el,cat){
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  renderMealCards(cat==='All'?window._meals:window._meals.filter(m=>m.category===cat));
+}
+
+const EMOJI_MAP={'Rice Dishes':'🍚','Local Favourites':'🍲','Soups & Stews':'🥘','Burgers':'🍔','Sides':'🍟','Chicken':'🍗','Wraps':'🌯','Mains':'🍽️','Healthy':'🥗'};
+
+function renderMealCards(meals){
+  document.getElementById('mealList').innerHTML=meals.map(m=>{
+    const qty=cart[m.id]?cart[m.id].quantity:0;
+    return `<div class="meal-card">
+      <div class="meal-emoji">${EMOJI_MAP[m.category]||'🍛'}</div>
+      <div class="meal-info"><h4>${esc(m.name)}</h4><p>${esc(m.description||'')}</p><div class="meal-price">GHS ${m.price.toFixed(2)}</div></div>
+      <div class="meal-actions">
+        <button class="qty-btn" onclick="updateCart(${m.id},${m.price},'${esc(m.name)}',-1)">−</button>
+        <span class="qty-count" id="qty-${m.id}">${qty}</span>
+        <button class="qty-btn add" onclick="updateCart(${m.id},${m.price},'${esc(m.name)}',1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateCart(id,price,name,delta){
+  if(!cart[id])cart[id]={meal_id:id,price,name,quantity:0};
+  cart[id].quantity=Math.max(0,cart[id].quantity+delta);
+  if(cart[id].quantity===0)delete cart[id];
+  document.getElementById(`qty-${id}`).textContent=cart[id]?.quantity||0;
+  updateCartBar();
+}
+
+function updateCartBar(){
+  const items=Object.values(cart);
+  const total=items.reduce((s,i)=>s+i.price*i.quantity,0);
+  const count=items.reduce((s,i)=>s+i.quantity,0);
+  const bar=document.getElementById('cartBar');
+  if(!count){bar.classList.add('hidden');return;}
+  bar.classList.remove('hidden');
+  document.getElementById('cartCount').textContent=`${count} item${count>1?'s':''}`;
+  document.getElementById('cartTotal').textContent=`GHS ${total.toFixed(2)}`;
+}
+
+function getCartTotal(){return Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);}
+
+function goToOrder(){
+  if(!Object.keys(cart).length)return showToast('Add at least one item first');
+  renderOrderSummary();updateDepositInfo();showScreen('screen-order');
+}
+
+function renderOrderSummary(){
+  const items=Object.values(cart);
+  const total=getCartTotal();
+  document.getElementById('orderSummaryCard').innerHTML=
+    items.map(i=>`<div class="order-item-row"><span>${esc(i.name)} × ${i.quantity}</span><span>GHS ${(i.price*i.quantity).toFixed(2)}</span></div>`).join('')+
+    `<div class="order-total-row"><span>Total</span><span style="color:var(--brand)">GHS ${total.toFixed(2)}</span></div>`;
+}
+
+function selectSchedule(el,type){
+  document.querySelectorAll('.schedule-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');selectedSchedule=type;updateDepositInfo();
+}
+
+function selectPayment(el,type){
+  document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');selectedPayment=type;updateDepositInfo();
+  document.getElementById('placeOrderBtn').textContent=type==='full'?'Place Order & Pay in Full':'Place Order & Pay Deposit';
+}
+
+function updateDepositInfo(){
+  const total=getCartTotal();
+  const info=document.getElementById('depositInfo');
+  if(selectedPayment==='full'){info.style.display='none';return;}
+  info.style.display='flex';
+  const rate=DEPOSIT_RATES[selectedSchedule];
+  document.getElementById('depositInfoText').innerHTML=
+    `<strong>You go pay GHS ${(total*rate).toFixed(2)} now (${Math.round(rate*100)}% deposit).</strong> Balance of GHS ${(total*(1-rate)).toFixed(2)} go be due on delivery day. We go WhatsApp remind you.`;
+}
+
+async function placeOrder(){
+  const date=document.getElementById('deliveryDate').value;
+  const time=document.getElementById('deliveryTime').value;
+  if(!date)return showToast('Select a delivery date','error');
+  if(!time)return showToast('Select a delivery time','error');
+  const payload={vendor_id:currentVendor.id,schedule_type:selectedSchedule,delivery_date:date+'T'+time+':00',delivery_time:time,payment_type:selectedPayment,items:Object.values(cart).map(i=>({meal_id:i.meal_id,quantity:i.quantity})),notes:document.getElementById('orderNotes').value||null};
+  showLoading(true);
+  try{const order=await apiFetch('/orders',{method:'POST',body:JSON.stringify(payload)});showConfirmation(order);}
+  catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+function showConfirmation(order){
+  document.getElementById('confirmRef').textContent=order.order_ref;
+  document.getElementById('confirmBreakdown').innerHTML=`
+    <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
+    <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
+    <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
+    <div class="confirm-row"><span>Order Total</span><span>GHS ${order.total_price.toFixed(2)}</span></div>
+    <div class="confirm-row highlight"><span>Deposit to Pay</span><span>GHS ${order.deposit_amount.toFixed(2)}</span></div>
+    <div class="confirm-row"><span>Balance on Delivery</span><span>GHS ${order.balance_due.toFixed(2)}</span></div>`;
+  cart={};updateCartBar();showScreen('screen-confirm');
+}
+
+async function loadOrders(){
+  const c=document.getElementById('ordersList');
+  c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2)">Loading...</div>';
+  try{
+    const orders=await apiFetch('/orders/my');
+    if(!orders.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><h3>No orders yet</h3><p>Go choose your food and order now!</p></div>';return;}
+    c.innerHTML=orders.map(o=>{
+      const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
+      return `<div class="order-card">
+        <div class="order-card-top"><div class="order-card-ref">${o.order_ref}</div><div class="status-badge status-${o.status}">${o.status}</div></div>
+        <div class="order-card-vendor"><strong>${esc(o.vendor_name||'Vendor')}</strong></div>
+        <div class="order-card-items">${(o.items||[]).map(i=>`${esc(i.name||'Item')} × ${i.quantity}`).join(', ')||'—'}</div>
+        <div class="order-card-footer"><div class="order-card-total">GHS ${o.total_price.toFixed(2)}</div><div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div></div>
+        ${needsBal?`<div class="balance-alert"><div class="balance-alert-text"><strong>Balance due: GHS ${o.balance_due.toFixed(2)}</strong>Pay before dispatch or your order go cancel</div><button class="pay-balance-btn" onclick="payBalance(${o.id},${o.balance_due})">Pay Now</button></div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){c.innerHTML=`<div class="empty-state"><p>${e.message}</p></div>`;}
+}
+
+async function payBalance(orderId,amount){
+  showLoading(true);
+  try{await apiFetch('/payments',{method:'POST',body:JSON.stringify({order_id:orderId,amount,payment_type:'balance',method:'mobile_money'})});showToast('Balance paid! ✅','success');loadOrders();}
+  catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtDate(s){if(!s)return'';try{return new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+</script>
 </body>
 </html>
