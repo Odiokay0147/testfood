@@ -228,13 +228,50 @@ def vendor_menu(vendor_id: int, db: Session = Depends(get_db)):
 
 # IMPORTANT: /orders/my MUST be declared before /orders/{order_ref}
 # otherwise FastAPI matches "my" as an order_ref and returns 404
-@app.get("/orders/my", response_model=list[schemas.OrderOut])
+@app.get("/orders/my")
 def my_orders(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Fetch all orders for the logged-in customer."""
-    return crud.get_orders_for_user(db, current_user.id)
+    """Fetch all orders for the logged-in customer, enriched with vendor name and item names."""
+    orders = crud.get_orders_for_user(db, current_user.id)
+    result = []
+    for o in orders:
+        order_dict = {
+            "id": o.id,
+            "order_ref": o.order_ref,
+            "user_id": o.user_id,
+            "vendor_id": o.vendor_id,
+            "vendor_name": o.vendor.name if o.vendor else "Vendor",  # FIX 12
+            "total_price": o.total_price,
+            "deposit_amount": o.deposit_amount,
+            "balance_due": o.balance_due,
+            "payment_type": o.payment_type,
+            "deposit_paid": o.deposit_paid,
+            "balance_paid": o.balance_paid,
+            "schedule_type": o.schedule_type,
+            "delivery_date": o.delivery_date.isoformat() if o.delivery_date else None,
+            "delivery_time": o.delivery_time,
+            "status": o.status,
+            "notes": o.notes,
+            "discount_applied": o.discount_applied,
+            "discount_amount": o.discount_amount,
+            "reminder_sent": o.reminder_sent,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "items": [  # FIX 13: include meal name on each item
+                {
+                    "id": item.id,
+                    "meal_id": item.meal_id,
+                    "name": item.meal.name if item.meal else f"Item #{item.meal_id}",
+                    "quantity": item.quantity,
+                    "unit_price": item.unit_price,
+                    "subtotal": item.subtotal,
+                }
+                for item in o.items
+            ],
+        }
+        result.append(order_dict)
+    return result
 
 
 @app.post("/orders", response_model=schemas.OrderOut, status_code=201)

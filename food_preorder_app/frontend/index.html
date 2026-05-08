@@ -131,12 +131,20 @@ img{display:block;max-width:100%}
   .order-screen{max-width:700px;margin:0 auto;padding:0 32px}
   .confirm-screen{max-width:600px;margin:0 auto;padding:0 32px}
   .orders-screen{max-width:800px;margin:0 auto;padding:0 32px}
-  .cart-bar{max-width:860px;left:calc(var(--sidebar) + 50%);transform:translateX(-50%)}
+  .cart-bar{bottom:20px;left:calc(var(--sidebar) + (100vw - var(--sidebar) - (min(500px, 100vw - var(--sidebar) - 40px))) / 2);transform:none;width:calc(min(500px, 100vw - var(--sidebar) - 40px))}
   .auth-screen{max-width:440px;margin:0 auto}
 }
 
 @media(min-width:1280px){
   .meal-list{grid-template-columns:1fr 1fr 1fr!important}
+}
+
+/* Auth-state visibility — controlled by JS class, not inline style */
+#bottomNav{display:none}
+body.logged-in #bottomNav{display:flex}
+@media(min-width:960px){
+  #sidebar{display:none}
+  body.logged-in #sidebar{display:flex}
 }
 
 /* ═══════════════════════════════════════
@@ -423,7 +431,7 @@ img{display:block;max-width:100%}
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">Prep <span>&</span> Go</div>
     <nav class="sidebar-nav">
-      <div class="sidebar-btn active" id="sb-home" onclick="navTo('screen-home','sb-home');loadVendors()">
+      <div class="sidebar-btn active" id="sb-home" onclick="navTo('screen-home','sb-home')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         Home
       </div>
@@ -607,7 +615,7 @@ img{display:block;max-width:100%}
 
 <!-- BOTTOM NAV (mobile) -->
 <nav class="bottom-nav" id="bottomNav" style="display:none">
-  <button class="nav-btn active" id="bn-home" onclick="mobileNav('screen-home','bn-home');loadVendors()">
+  <button class="nav-btn active" id="bn-home" onclick="mobileNav('screen-home','bn-home')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
   </button>
   <button class="nav-btn" id="bn-orders" onclick="mobileNav('screen-orders','bn-orders');loadOrders()">
@@ -660,8 +668,10 @@ function mobileNav(screenId, btnId){
 }
 
 function showMainApp(){
-  document.getElementById('bottomNav').style.display='flex';
-  document.getElementById('sidebar').style.display='flex';
+  // FIX 2: Use class toggle so CSS media queries control sidebar visibility, not inline style
+  document.getElementById('bottomNav').classList.add('app-visible');
+  document.getElementById('bottomNav').style.removeProperty('display');
+  document.body.classList.add('logged-in');
   if(currentUser){
     const init=(currentUser.name||'U')[0].toUpperCase();
     document.getElementById('avatarBtn').textContent=init;
@@ -670,7 +680,7 @@ function showMainApp(){
     document.getElementById('sidebarEmail').textContent=currentUser.email||'';
   }
   showScreen('screen-home');
-  loadVendors();
+  loadVendors(); // FIX 14: only called once here; sidebar Home btn no longer calls loadVendors separately
 }
 
 async function apiFetch(path,opts={}){
@@ -724,8 +734,10 @@ async function doLogin(){
 function doLogout(){
   token=null; currentUser=null;
   localStorage.removeItem('pg_token'); localStorage.removeItem('pg_user');
+  // FIX 3: Remove class instead of toggling inline style for consistency with showMainApp
+  document.getElementById('bottomNav').classList.remove('app-visible');
   document.getElementById('bottomNav').style.display='none';
-  document.getElementById('sidebar').style.display='none';
+  document.body.classList.remove('logged-in');
   showScreen('screen-login');
   showToast('You don logout');
 }
@@ -733,12 +745,13 @@ function doLogout(){
 async function loadVendors(){
   try{
     const vendors=await apiFetch('/vendors');
-    const colors=['#FF6B35','#2D6A4F'];
-    const emojis=['👨‍🍳','🥜'];
+    // FIX 4: modulo guard so arrays never go out-of-bounds for any number of vendors
+    const colors=['#FF6B35','#2D6A4F','#6A4D2D','#2D4D6A'];
+    const emojis=['👨‍🍳','🥜','🍱','🍜'];
     document.getElementById('vendorCards').innerHTML=vendors.map((v,i)=>`
       <div class="vendor-card" onclick="openVendor(${v.id},'${esc(v.name)}','${esc(v.description||'')}')">
         <div class="vendor-card-top">
-          <div class="vendor-emoji" style="background:${colors[i]}20">${emojis[i]}</div>
+          <div class="vendor-emoji" style="background:${colors[i%colors.length]}20">${emojis[i%emojis.length]}</div>
           <div class="vendor-info"><h3>${esc(v.name)}</h3><p>${esc(v.description||'Delicious meals available')}</p></div>
         </div>
         <div class="vendor-tags"><span class="vtag">Pre-Order</span><span class="vtag">Deposit Option</span><span class="vtag">WhatsApp Reminder</span></div>
@@ -750,12 +763,22 @@ async function loadVendors(){
 async function openVendor(id,name,desc){
   cart={};currentVendor={id,name};
   document.getElementById('menuVendorName').textContent=name;
-  updateCartBar();showScreen('screen-menu');
+  updateCartBar();
 
-  // Show discount banner for Chef'N
-  const isChef = name.toLowerCase().includes('chef');
-  const existingBanner = document.getElementById('discountBanner');
+  // FIX 5: Remove stale banner BEFORE switching screen to avoid flash
+  const existingBanner=document.getElementById('discountBanner');
   if(existingBanner) existingBanner.remove();
+
+  showScreen('screen-menu');
+
+  // FIX 9: Reset schedule/payment state each time a new vendor is opened
+  selectedSchedule='hourly';
+  selectedPayment='deposit';
+  document.querySelectorAll('.schedule-chip').forEach((c,i)=>c.classList.toggle('selected',i===0));
+  document.querySelectorAll('.payment-option').forEach((o,i)=>o.classList.toggle('selected',i===0));
+  document.getElementById('placeOrderBtn').textContent='Place Order & Pay Deposit';
+
+  const isChef=name.toLowerCase().includes('chef');
   if(isChef){
     const banner=document.createElement('div');
     banner.id='discountBanner';
@@ -803,6 +826,8 @@ function calcDiscount(){
     : `10% off — qty ≥ ${CHEFN_THRESHOLD} on one meal`;
   return { discounted: true, amount: discountAmt, reason, raw, final: raw - discountAmt };
 }
+// FIX 1: EMOJIS was a stray object literal with no const declaration — caused SyntaxError
+const EMOJIS={
   'Rice':'🍚','Pasta':'🍝','Beans':'🫘',
   'Snacks':'🥜','Fresh Drinks':'🥤','Small Chops':'🥟',
   'Rice Dishes':'🍚','Soups & Stews':'🥘','Burgers':'🍔',
@@ -810,6 +835,10 @@ function calcDiscount(){
 };
 
 function renderMealCards(meals){
+  // FIX 10: Store meal data in a lookup map and use data-* attributes in onclick
+  // so apostrophes in names like "Chef'N" never break the HTML attribute string
+  window._mealMap={};
+  meals.forEach(m=>{ window._mealMap[m.id]=m; });
   document.getElementById('mealList').innerHTML=meals.map(m=>{
     const qty=cart[m.id]?cart[m.id].quantity:0;
     return `<div class="meal-card">
@@ -820,16 +849,19 @@ function renderMealCards(meals){
         <div class="meal-price">${fmt(m.price)}</div>
       </div>
       <div class="meal-actions">
-        <button class="qty-btn" onclick="updateCart(${m.id},${m.price},'${esc(m.name)}',-1)">−</button>
+        <button class="qty-btn" onclick="updateCartById(${m.id},-1)">−</button>
         <span class="qty-count" id="qty-${m.id}">${qty}</span>
-        <button class="qty-btn add" onclick="updateCart(${m.id},${m.price},'${esc(m.name)}',1)">+</button>
+        <button class="qty-btn add" onclick="updateCartById(${m.id},1)">+</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function updateCart(id,price,name,delta){
-  if(!cart[id]) cart[id]={meal_id:id,price,name,quantity:0};
+// FIX 10: New safe updateCart that looks up meal by id — no apostrophe risk
+function updateCartById(id,delta){
+  const meal=window._mealMap[id];
+  if(!meal) return;
+  if(!cart[id]) cart[id]={meal_id:id,price:meal.price,name:meal.name,quantity:0};
   cart[id].quantity=Math.max(0,cart[id].quantity+delta);
   if(cart[id].quantity===0) delete cart[id];
   const el=document.getElementById(`qty-${id}`);
@@ -850,10 +882,11 @@ function updateCartBar(){
   document.getElementById('cartTotal').textContent=fmt(total)+(disc.discounted?' 🏷️':'');
 }
 
+// FIX 7: Always compute raw locally; disc.final only exists when discounted=true (safe now since calcDiscount guarantees it)
 function getCartTotal(){
   const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
   const disc=calcDiscount();
-  return disc.discounted ? disc.final : raw;
+  return disc.discounted ? (disc.final||raw) : raw;
 }
 
 function goToOrder(){
@@ -902,9 +935,11 @@ function selectPayment(el,type){
 }
 
 function updateDepositInfo(){
-  const raw=getCartTotal();
+  // FIX 8: Compute raw directly — NOT via getCartTotal() which already applies discount
+  // Using getCartTotal() here caused double-discount: total was already discounted, then disc.amount was shown again
+  const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
   const disc=calcDiscount();
-  const total=disc.discounted ? disc.final : raw;
+  const total=disc.discounted ? (disc.final||raw) : raw;
   const info=document.getElementById('depositInfo');
   if(selectedPayment==='full'){info.style.display='none';return;}
   info.style.display='flex';
@@ -973,20 +1008,26 @@ async function loadOrders(){
     }
     c.innerHTML=orders.map(o=>{
       const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
+      // FIX 12: backend returns vendor_id on OrderOut — use o.vendor_name if present, else fall back gracefully
+      const vendorName = o.vendor_name || o.vendor?.name || 'Vendor';
+      // FIX 13: OrderItemOut has meal_id + subtotal but name comes from joined data — use meal_id as fallback label
+      const itemList = (o.items||[]).map(i=>`${esc(i.name||`Item #${i.meal_id}`)} × ${i.quantity}`).join(', ')||'—';
+      // FIX 11: round balance_due to 2dp before embedding in onclick to avoid float precision mismatch
+      const balanceDue = Math.round((o.balance_due||0)*100)/100;
       return `<div class="order-card">
         <div class="order-card-top">
           <div class="order-card-ref">${o.order_ref}</div>
           <div class="status-badge status-${o.status}">${o.status}</div>
         </div>
-        <div class="order-card-vendor"><strong>${esc(o.vendor_name||'Vendor')}</strong></div>
-        <div class="order-card-items">${(o.items||[]).map(i=>`${esc(i.name||'Item')} × ${i.quantity}`).join(', ')||'—'}</div>
+        <div class="order-card-vendor"><strong>${esc(vendorName)}</strong></div>
+        <div class="order-card-items">${itemList}</div>
         <div class="order-card-footer">
           <div class="order-card-total">${fmt(o.total_price)}</div>
           <div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div>
         </div>
         ${needsBal?`<div class="balance-alert">
-          <div class="balance-alert-text"><strong>Balance: ${fmt(o.balance_due)}</strong>Pay before dispatch</div>
-          <button class="pay-balance-btn" onclick="payBalance(${o.id},${o.balance_due})">Pay Now</button>
+          <div class="balance-alert-text"><strong>Balance: ${fmt(balanceDue)}</strong>Pay before dispatch</div>
+          <button class="pay-balance-btn" onclick="payBalance(${o.id},${balanceDue})">Pay Now</button>
         </div>`:''}
       </div>`;
     }).join('');
@@ -1004,7 +1045,15 @@ async function payBalance(orderId,amount){
 }
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmtDate(s){if(!s)return'';try{return new Date(s).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+// FIX 15: Split on 'T' and parse date parts directly to avoid timezone-induced off-by-one day
+function fmtDate(s){
+  if(!s) return '';
+  try{
+    const parts=(s.split('T')[0]).split('-');
+    const d=new Date(+parts[0],+parts[1]-1,+parts[2]);
+    return d.toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});
+  }catch(e){return s;}
+}
 </script>
 </body>
 </html>
