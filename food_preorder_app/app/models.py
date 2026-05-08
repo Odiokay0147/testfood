@@ -65,6 +65,8 @@ class Order(Base):
     delivery_time = Column(String, nullable=True)              # e.g. "13:00"
     status = Column(String, default="pending")                 # pending|confirmed|dispatched|delivered|cancelled
     notes = Column(String, nullable=True)
+    discount_applied = Column(Boolean, default=False)
+    discount_amount = Column(Float, default=0.0)
     reminder_sent = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)

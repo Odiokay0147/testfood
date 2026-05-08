@@ -68,57 +68,97 @@ def get_current_user(
 @app.on_event("startup")
 def startup_event():
     db = SessionLocal()
+    _reseed_if_needed(db)
+    db.close()
+    start_scheduler()
 
-    if not db.query(models.Vendor).first():
-        # Vendor 1 — Chaf'N
-        chafn = models.Vendor(
-            name="Chaf'N",
-            description="Home-cooked meals with authentic local flavours. Freshly prepared daily.",
-            phone="+233200000001",
+
+def _reseed_if_needed(db):
+    """Wipe and reseed vendors/meals. Safe to call on startup."""
+    existing = db.query(models.Vendor).first()
+    if existing and existing.name in ("Chaf'N", "Chef'N", "Ur Cravings Crunches"):
+        # Already seeded with old data — wipe and redo
+        db.query(models.OrderItem).delete()
+        db.query(models.Order).delete()
+        db.query(models.Meal).delete()
+        db.query(models.Vendor).delete()
+        db.commit()
+        existing = None
+
+    if not existing:
+        # ── Vendor 1: Chef'N ──────────────────────────
+        chefn = models.Vendor(
+            name="Chef'N",
+            description="Authentic Nigerian home cooking. Rich stews, jollof rice & more, freshly prepared daily.",
+            phone="+2348000000001",
         )
-        db.add(chafn)
+        db.add(chefn)
         db.flush()
 
-        for meal_data in [
-            ("Jollof Rice & Chicken", "Party jollof with grilled chicken and plantain", 35.00, "Rice Dishes"),
-            ("Banku & Tilapia",        "Fermented corn dough with grilled tilapia & pepper sauce", 40.00, "Local Favourites"),
-            ("Waakye Special",         "Rice and beans with spaghetti, wele, eggs, and shito", 30.00, "Rice Dishes"),
-            ("Fufu & Light Soup",      "Pounded fufu with aromatic light soup, choice of protein", 38.00, "Soups & Stews"),
-            ("Kontomire Stew & Rice",  "Spinach stew with smoked fish and steamed rice", 28.00, "Soups & Stews"),
-        ]:
-            db.add(models.Meal(
-                name=meal_data[0], description=meal_data[1],
-                price=meal_data[2], category=meal_data[3], vendor_id=chafn.id
-            ))
+        chefn_meals = [
+            ("Jollof Rice with Pepper Chicken & Plantain",         "Smoky party jollof, spiced pepper chicken & fried plantain",          5000, "Rice"),
+            ("Jollof Rice with Pepper Chicken",                    "Classic smoky jollof with well-seasoned pepper chicken",              4500, "Rice"),
+            ("Jollof Spaghetti with Chicken or Beef",              "Spicy jollof spaghetti with your choice of chicken or beef",          5000, "Pasta"),
+            ("Ewa Agoyin with Plantain/Bread & Croaker Fish",      "Soft mashed beans in spiced Agoyin sauce, plantain/bread & fish",    5000, "Beans"),
+            ("Mixed Rice (Jollof & Fried) with Pepper Chicken & Plantain", "Best of both worlds — jollof & fried rice combo with chicken & plantain", 5000, "Rice"),
+            ("Mixed Rice (Jollof & Fried) with Pepper Chicken",   "Jollof & fried rice combo served with spiced pepper chicken",         4500, "Rice"),
+            ("White Rice & Stew with Pepper Chicken & Plantain",  "Fluffy white rice in rich tomato stew, pepper chicken & plantain",    5000, "Rice"),
+            ("White Rice & Stew with Pepper Chicken",             "Fluffy white rice in rich tomato stew with spiced pepper chicken",    4500, "Rice"),
+            ("Jollof Rice with Big Beef & Plantain",              "Smoky jollof rice with a generous cut of seasoned beef & plantain",   5000, "Rice"),
+        ]
+        for name, desc, price, cat in chefn_meals:
+            db.add(models.Meal(name=name, description=desc, price=price, category=cat, vendor_id=chefn.id))
 
-        # Vendor 2 — Ur Cravings Crunches
+        # ── Vendor 2: Ur Cravings Crunches ───────────
         ucc = models.Vendor(
             name="Ur Cravings Crunches",
-            description="Street-style bites and crunchy favourites. Satisfying every craving.",
-            phone="+233200000002",
+            description="Crunchy snacks, fresh homemade drinks & small chops. Every craving sorted!",
+            phone="+2348000000002",
         )
         db.add(ucc)
         db.flush()
 
-        for meal_data in [
-            ("Crispy Chicken Burger", "Double-stacked crispy chicken with house sauce", 45.00, "Burgers"),
-            ("Loaded Fries Box",      "Large fries with cheese sauce, jalapeños, chicken bits", 30.00, "Sides"),
-            ("Spicy Wings (6pc)",     "Buffalo wings with blue cheese dip", 38.00, "Chicken"),
-            ("Shawarma Wrap",         "Grilled chicken or beef with garlic sauce", 35.00, "Wraps"),
-            ("Fish & Chips",          "Golden battered tilapia with chunky fries", 40.00, "Mains"),
-        ]:
-            db.add(models.Meal(
-                name=meal_data[0], description=meal_data[1],
-                price=meal_data[2], category=meal_data[3], vendor_id=ucc.id
-            ))
+        ucc_meals = [
+            # Coated Peanuts — Jars
+            ("Coated Peanuts — Big Jar",      "Crunchy coated peanuts in a big jar",    3500, "Snacks"),
+            ("Coated Peanuts — Medium Jar",   "Crunchy coated peanuts in a medium jar", 2700, "Snacks"),
+            ("Coated Peanuts — Small Jar",    "Crunchy coated peanuts in a small jar",  2000, "Snacks"),
+            # Coated Peanuts — Ziplock
+            ("Coated Peanuts — Big Pack",     "Coated peanuts in a big ziplock pack",   3000, "Snacks"),
+            ("Coated Peanuts — Medium Pack",  "Coated peanuts in a medium ziplock pack",2400, "Snacks"),
+            ("Coated Peanuts — Small Pack",   "Coated peanuts in a small ziplock pack", 1200, "Snacks"),
+            ("Coated Peanuts — Mini Pack",    "Coated peanuts in a mini ziplock pack",   800, "Snacks"),
+            # Chin-Chin — Jars
+            ("Crunchy Chin-Chin — Big Jar",   "Homemade crunchy chin-chin in a big jar",   3000, "Snacks"),
+            ("Crunchy Chin-Chin — Medium Jar","Homemade crunchy chin-chin in a medium jar", 2500, "Snacks"),
+            ("Crunchy Chin-Chin — Small Jar", "Homemade crunchy chin-chin in a small jar",  1300, "Snacks"),
+            # Chin-Chin — Ziplock
+            ("Crunchy Chin-Chin — Big Pack",  "Chin-chin in a big ziplock pack",   2500, "Snacks"),
+            ("Crunchy Chin-Chin — Medium Pack","Chin-chin in a medium ziplock pack",1300, "Snacks"),
+            ("Crunchy Chin-Chin — Small Pack","Chin-chin in a small ziplock pack",  1000, "Snacks"),
+            ("Crunchy Chin-Chin — Mini Pack", "Chin-chin in a mini ziplock pack",    500, "Snacks"),
+            # Fresh Drinks
+            ("Zobo Drink — Big Bottle (75cl)",    "Fresh homemade hibiscus zobo drink — 75cl", 1500, "Fresh Drinks"),
+            ("Zobo Drink — Medium Bottle (50cl)", "Fresh homemade hibiscus zobo drink — 50cl", 1000, "Fresh Drinks"),
+            ("Zobo Drink — Small Bottle (35cl)",  "Fresh homemade hibiscus zobo drink — 35cl",  500, "Fresh Drinks"),
+            ("Tiger Nut Milk — Big Bottle",       "Creamy homemade tiger nut milk drink",       1500, "Fresh Drinks"),
+            ("Tiger Nut Milk — Medium Bottle",    "Creamy homemade tiger nut milk drink",       1000, "Fresh Drinks"),
+            ("Tiger Nut Milk — Small Bottle",     "Creamy homemade tiger nut milk drink",        500, "Fresh Drinks"),
+            ("Coconut Heaven — Big Bottle",       "Refreshing homemade coconut drink",           1500, "Fresh Drinks"),
+            ("Coconut Heaven — Medium Bottle",    "Refreshing homemade coconut drink",           1200, "Fresh Drinks"),
+            ("Coconut Heaven — Small Bottle",     "Refreshing homemade coconut drink",            500, "Fresh Drinks"),
+            # Small Chops / Bulk
+            ("50 Beef Samosa",     "Crispy beef-filled samosas — bulk order of 50 pieces",    15000, "Small Chops"),
+            ("50 Chicken Samosa",  "Crispy chicken-filled samosas — bulk order of 50 pieces", 15000, "Small Chops"),
+            ("50 Spring Rolls",    "Golden crispy spring rolls — bulk order of 50 pieces",    13000, "Small Chops"),
+            ("Puff Puff",          "Freshly fried soft puff puff — bulk order",               17000, "Small Chops"),
+            ("Mosa",               "Traditional Nigerian mosa — contact us for pricing",           1, "Small Chops"),
+        ]
+        for name, desc, price, cat in ucc_meals:
+            db.add(models.Meal(name=name, description=desc, price=price, category=cat, vendor_id=ucc.id))
 
         db.commit()
-        print("✅ Seed data created — 2 vendors, 10 meals")
-
-    db.close()
-
-    # Start the daily reminder scheduler
-    start_scheduler()
+        print("✅ Seed data created — Chef'N (9 meals) + Ur Cravings Crunches (28 items)")
 
 
 @app.on_event("shutdown")

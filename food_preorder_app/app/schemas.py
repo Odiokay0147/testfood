@@ -128,6 +128,8 @@ class OrderOut(BaseModel):
     delivery_time: Optional[str]
     status: str
     notes: Optional[str]
+    discount_applied: bool
+    discount_amount: float
     reminder_sent: bool
     created_at: datetime
     items: List[OrderItemOut] = []

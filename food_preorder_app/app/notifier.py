@@ -27,7 +27,7 @@ def _get_client():
 def _format_phone(phone: str) -> str:
     """
     Ensure phone is in WhatsApp format: whatsapp:+XXXXXXXXXXX
-    Accepts: +233XXXXXXXXX, 0XXXXXXXXX (Ghana), 0XXXXXXXXX (Nigeria)
+    Accepts: +234XXXXXXXXX, 0XXXXXXXXX (Nigeria)
     """
     phone = phone.strip().replace(" ", "").replace("-", "")
 
@@ -37,8 +37,8 @@ def _format_phone(phone: str) -> str:
 
     # Add country code if local format (starts with 0)
     if phone.startswith("0"):
-        # Default to Ghana (+233) — change to +234 for Nigeria
-        phone = "+233" + phone[1:]
+        # Default to Nigeria (+234)
+        phone = "+234" + phone[1:]
 
     # Ensure + prefix
     if not phone.startswith("+"):
@@ -85,7 +85,7 @@ def send_balance_reminder(customer_name: str, phone: str, order_ref: str,
         f"👋 Hello {customer_name}!\n\n"
         f"Your order *{order_ref}* from *{vendor_name}* is scheduled for delivery tomorrow "
         f"({delivery_date} at {delivery_time or 'your chosen time'}).\n\n"
-        f"💳 *Balance due:* GHS {balance_due:.2f}\n\n"
+        f"💳 *Balance due:* NGN {balance_due:.2f}\n\n"
         f"Please complete your payment before dispatch so your order is not delayed. "
         f"Thank you for choosing Prep & Go! 🙏"
     )
@@ -105,9 +105,9 @@ def send_order_confirmation(customer_name: str, phone: str, order_ref: str,
         f"📋 *Order Ref:* {order_ref}\n"
         f"📅 *Delivery:* {delivery_date} at {delivery_time or 'TBD'}\n"
         f"🗓️ *Schedule:* {schedule_type.title()}\n\n"
-        f"💰 *Total:* GHS {total:.2f}\n"
-        f"💳 *Deposit to pay now:* GHS {deposit:.2f}\n"
-        f"🔄 *Balance on delivery day:* GHS {balance:.2f}\n\n"
+        f"💰 *Total:* NGN {total:.2f}\n"
+        f"💳 *Deposit to pay now:* NGN {deposit:.2f}\n"
+        f"🔄 *Balance on delivery day:* NGN {balance:.2f}\n\n"
         f"Please pay your deposit to secure your order. "
         f"Reply to this message if you need help. 🍽️"
     )
@@ -124,7 +124,7 @@ def send_deposit_receipt(customer_name: str, phone: str, order_ref: str,
         f"Hi {customer_name}, we've received your deposit of *GHS {amount:.2f}* "
         f"for order *{order_ref}* with {vendor_name}.\n\n"
         f"Your order is now *confirmed* and secured! 🔒\n\n"
-        f"📌 *Remaining balance:* GHS {balance_due:.2f} (due on delivery day)\n\n"
+        f"📌 *Remaining balance:* NGN {balance_due:.2f} (due on delivery day)\n\n"
         f"We'll remind you the day before delivery. Thank you! 🙏"
     )
     return send_whatsapp(phone, message)

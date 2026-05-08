@@ -78,6 +78,54 @@ def get_vendor_menu(db: Session, vendor_id: int):
 # ─────────────────────────────────────────────
 # ORDERS
 # ─────────────────────────────────────────────
+
+CHEFN_DISCOUNT_RATE = 0.10        # 10% discount
+CHEFN_DISCOUNT_THRESHOLD = 10     # minimum total items to trigger order-level discount
+
+def _apply_chefn_discounts(vendor_name: str, resolved_items: list) -> tuple:
+    """
+    Chef'N discount rules:
+    1. Single meal with qty >= 10  → 10% off that meal's subtotal
+    2. Total items across all meals >= 10 → 10% off the full order total
+
+    Returns (final_total, resolved_items_with_discount, discount_applied, discount_amount, discount_reason)
+    """
+    if "chef" not in vendor_name.lower():
+        # Not Chef'N — no discount
+        raw_total = sum(subtotal for _, _, subtotal in resolved_items)
+        return raw_total, resolved_items, False, 0.0, None
+
+    total_qty = sum(qty for _, qty, _ in resolved_items)
+    order_discount = total_qty >= CHEFN_DISCOUNT_THRESHOLD
+
+    updated_items = []
+    raw_total = 0.0
+    discounted_total = 0.0
+
+    for meal, qty, subtotal in resolved_items:
+        item_discount = qty >= CHEFN_DISCOUNT_THRESHOLD
+        if order_discount or item_discount:
+            new_subtotal = round(subtotal * (1 - CHEFN_DISCOUNT_RATE), 2)
+        else:
+            new_subtotal = subtotal
+        raw_total += subtotal
+        discounted_total += new_subtotal
+        updated_items.append((meal, qty, new_subtotal))
+
+    discount_applied = discounted_total < raw_total
+    discount_amount = round(raw_total - discounted_total, 2)
+
+    if discount_applied:
+        if order_discount:
+            reason = f"10% discount — {total_qty} total items ordered"
+        else:
+            reason = "10% discount — single meal qty ≥ 10"
+    else:
+        reason = None
+
+    return discounted_total, updated_items, discount_applied, discount_amount, reason
+
+
 def create_order(db: Session, user_id: int, order: schemas.OrderCreate) -> models.Order:
     # validate vendor
     vendor = db.query(models.Vendor).filter(
@@ -87,10 +135,8 @@ def create_order(db: Session, user_id: int, order: schemas.OrderCreate) -> model
     if not vendor:
         raise HTTPException(status_code=404, detail="Vendor not found or inactive")
 
-    # resolve all meals and calculate total
-    total_price = 0.0
+    # resolve all meals
     resolved_items = []
-
     for item in order.items:
         meal = db.query(models.Meal).filter(
             models.Meal.id == item.meal_id,
@@ -103,8 +149,13 @@ def create_order(db: Session, user_id: int, order: schemas.OrderCreate) -> model
                 detail=f"Meal ID {item.meal_id} not found or unavailable for this vendor"
             )
         subtotal = meal.price * item.quantity
-        total_price += subtotal
         resolved_items.append((meal, item.quantity, subtotal))
+
+    # apply Chef'N discount rules
+    total_price, resolved_items, discount_applied, discount_amount, discount_reason = \
+        _apply_chefn_discounts(vendor.name, resolved_items)
+
+    total_price = round(total_price, 2)
 
     # calculate deposit and balance
     if order.payment_type == "full":
@@ -115,22 +166,29 @@ def create_order(db: Session, user_id: int, order: schemas.OrderCreate) -> model
         deposit_amount = round(total_price * rate, 2)
         balance_due = round(total_price - deposit_amount, 2)
 
+    # build notes — append discount info
+    notes = order.notes or ""
+    if discount_applied:
+        notes = f"[DISCOUNT: {discount_reason} — ₦{discount_amount:,.0f} saved] " + notes
+
     # create order
     db_order = models.Order(
         order_ref=_generate_order_ref(),
         user_id=user_id,
         vendor_id=order.vendor_id,
-        total_price=round(total_price, 2),
+        total_price=total_price,
         deposit_amount=deposit_amount,
         balance_due=balance_due,
         payment_type=order.payment_type,
         schedule_type=order.schedule_type,
         delivery_date=order.delivery_date,
         delivery_time=order.delivery_time,
-        notes=order.notes,
+        notes=notes.strip(),
+        discount_applied=discount_applied,
+        discount_amount=discount_amount,
     )
     db.add(db_order)
-    db.flush()  # get db_order.id before committing
+    db.flush()
 
     # create order items
     for meal, qty, subtotal in resolved_items:

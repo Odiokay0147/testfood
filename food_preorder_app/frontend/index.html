@@ -2,41 +2,219 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#FF6B35"/>
 <title>Prep & Go — Order Food Ahead</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet"/>
 <style>
-:root{--brand:#FF6B35;--brand2:#2D6A4F;--brand-light:#FFF0EB;--accent:#FFB703;--r:16px;--rcard:20px;--shadow:0 4px 24px rgba(0,0,0,.08);--bg:#F7F4F0;--surface:#FFFFFF;--surface2:#F0EDE8;--text:#1A1208;--text2:#6B6358;--border:rgba(0,0,0,.08);--card-bg:#FFFFFF}
-@media(prefers-color-scheme:dark){:root{--bg:#111008;--surface:#1E1B12;--surface2:#2A2618;--text:#F5F0E8;--text2:#9E9880;--border:rgba(255,255,255,.08);--card-bg:#1E1B12}}
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root{
+  --brand:#FF6B35;--brand2:#2D6A4F;--brand-light:#FFF0EB;--accent:#FFB703;
+  --r:16px;--rcard:20px;
+  --shadow:0 4px 24px rgba(0,0,0,.07);
+  --shadow-md:0 8px 32px rgba(0,0,0,.11);
+  --bg:#F7F4F0;--surface:#fff;--surface2:#F0EDE8;
+  --text:#1A1208;--text2:#6B6358;--border:rgba(0,0,0,.08);--card-bg:#fff;
+  --nav-h:64px;
+  --sidebar:260px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#111008;--surface:#1E1B12;--surface2:#2A2618;
+    --text:#F5F0E8;--text2:#9E9880;--border:rgba(255,255,255,.08);--card-bg:#1E1B12;
+  }
+}
+
+/* ═══════════════════════════════════════
+   RESET
+═══════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;-webkit-text-size-adjust:100%}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;max-width:430px;margin:0 auto;overflow-x:hidden}
+html{font-size:16px;-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 button{cursor:pointer;border:none;background:none;font-family:inherit}
-input,select{font-family:inherit;font-size:1rem}
-h1,h2,h3{font-family:'Syne',sans-serif}
-.screen{display:none;min-height:100vh;padding-bottom:90px;animation:fadeUp .35s ease}
+input,select,textarea{font-family:inherit;font-size:1rem}
+h1,h2,h3,h4{font-family:'Syne',sans-serif}
+a{text-decoration:none;color:inherit}
+img{display:block;max-width:100%}
+
+/* ═══════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════ */
+
+/* Mobile: single column, bottom nav */
+.shell{
+  display:flex;
+  min-height:100vh;
+}
+
+/* Sidebar (desktop only) */
+.sidebar{
+  display:none;
+  width:var(--sidebar);
+  flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  position:fixed;
+  top:0;left:0;bottom:0;
+  flex-direction:column;
+  padding:28px 0 24px;
+  z-index:200;
+}
+.sidebar-logo{
+  font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;
+  color:var(--brand);padding:0 24px 28px;letter-spacing:-.5px;
+}
+.sidebar-logo span{color:var(--text)}
+.sidebar-nav{display:flex;flex-direction:column;gap:4px;padding:0 12px;flex:1}
+.sidebar-btn{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 14px;border-radius:12px;
+  font-size:.9rem;font-weight:500;color:var(--text2);
+  transition:all .18s;cursor:pointer;
+}
+.sidebar-btn svg{width:20px;height:20px;flex-shrink:0}
+.sidebar-btn:hover{background:var(--surface2);color:var(--text)}
+.sidebar-btn.active{background:var(--brand-light);color:var(--brand);font-weight:600}
+@media(prefers-color-scheme:dark){.sidebar-btn.active{background:#3A1A0A}}
+.sidebar-user{
+  padding:16px 24px 0;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.sidebar-avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--brand);color:#fff;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-email{font-size:.72rem;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Main content area */
+.main-content{
+  flex:1;
+  width:100%;
+  /* on desktop, offset for sidebar */
+}
+
+/* ═══════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════ */
+
+/* Tablet (≥600px): wider cards, 2-col vendor grid */
+@media(min-width:600px){
+  body{background:var(--bg)}
+  .vendor-cards{grid-template-columns:1fr 1fr!important}
+  .meal-list{grid-template-columns:1fr 1fr!important}
+  .hero h1{font-size:2.2rem!important}
+  .auth-screen{max-width:420px;margin:0 auto}
+}
+
+/* Desktop (≥960px): show sidebar, restrict content width */
+@media(min-width:960px){
+  .sidebar{display:flex}
+  .main-content{margin-left:var(--sidebar)}
+  .bottom-nav{display:none!important}
+  .screen{padding-bottom:40px!important}
+  .topbar{max-width:900px;margin:0 auto;padding:20px 32px 8px}
+  .hero{margin:8px 32px 28px;max-width:900px;margin-left:auto;margin-right:auto}
+  .section-title{max-width:900px;margin:0 auto;padding-left:32px;padding-right:32px}
+  .vendor-cards{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr!important}
+  .how-section{max-width:900px;margin:28px auto 0;margin-left:auto;margin-right:auto;padding:24px 32px}
+  .menu-header{max-width:900px;margin:0 auto;padding:20px 32px 12px}
+  .category-tabs{max-width:900px;margin:0 auto;padding:0 32px 16px}
+  .meal-list{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr 1fr!important}
+  .order-screen{max-width:700px;margin:0 auto;padding:0 32px}
+  .confirm-screen{max-width:600px;margin:0 auto;padding:0 32px}
+  .orders-screen{max-width:800px;margin:0 auto;padding:0 32px}
+  .cart-bar{max-width:860px;left:calc(var(--sidebar) + 50%);transform:translateX(-50%)}
+  .auth-screen{max-width:440px;margin:0 auto}
+}
+
+@media(min-width:1280px){
+  .meal-list{grid-template-columns:1fr 1fr 1fr!important}
+}
+
+/* ═══════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════ */
+.screen{display:none;min-height:100vh;padding-bottom:80px;animation:fadeUp .3s ease}
 .screen.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;padding:10px 0 max(10px,env(safe-area-inset-bottom));z-index:100}
-.nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.65rem;font-weight:500;color:var(--text2);padding:4px 16px;transition:all .2s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════════════════════════════════
+   BOTTOM NAV (mobile only)
+═══════════════════════════════════════ */
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:space-around;align-items:center;
+  padding:10px 0 max(10px,env(safe-area-inset-bottom));
+  z-index:100;
+}
+.nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:.65rem;font-weight:500;color:var(--text2);
+  padding:4px 20px;transition:color .2s;
+}
 .nav-btn.active{color:var(--brand)}
 .nav-btn svg{width:22px;height:22px}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;position:sticky;top:0;z-index:50;background:var(--bg)}
-.topbar-logo{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--brand);letter-spacing:-0.5px}
+
+/* ═══════════════════════════════════════
+   TOPBAR
+═══════════════════════════════════════ */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px 8px;
+  position:sticky;top:0;z-index:50;background:var(--bg);
+}
+.topbar-logo{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--brand);letter-spacing:-.5px}
 .topbar-logo span{color:var(--text)}
-.avatar-btn{width:38px;height:38px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
-.hero{margin:8px 20px 24px;background:linear-gradient(135deg,var(--brand) 0%,#E85D04 100%);border-radius:24px;padding:28px 24px;color:#fff;position:relative;overflow:hidden}
+.avatar-btn{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--brand);color:#fff;
+  font-family:'Syne',sans-serif;font-weight:700;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ═══════════════════════════════════════
+   HERO
+═══════════════════════════════════════ */
+.hero{
+  margin:8px 20px 24px;
+  background:linear-gradient(135deg,var(--brand) 0%,#E85D04 100%);
+  border-radius:24px;padding:28px 24px;color:#fff;
+  position:relative;overflow:hidden;
+}
 .hero::before{content:'';position:absolute;right:-20px;top:-20px;width:140px;height:140px;background:rgba(255,255,255,.1);border-radius:50%}
+.hero::after{content:'';position:absolute;right:20px;bottom:-30px;width:80px;height:80px;background:rgba(255,255,255,.07);border-radius:50%}
 .hero-tag{font-size:.72rem;font-weight:500;letter-spacing:1.5px;text-transform:uppercase;background:rgba(255,255,255,.2);display:inline-block;padding:4px 10px;border-radius:20px;margin-bottom:10px}
 .hero h1{font-size:1.7rem;font-weight:800;line-height:1.15;margin-bottom:6px}
 .hero p{font-size:.88rem;opacity:.9;line-height:1.5}
 .hero-pills{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
 .hero-pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:500}
+
+/* ═══════════════════════════════════════
+   VENDORS
+═══════════════════════════════════════ */
 .section-title{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;padding:0 20px 14px}
-.vendor-cards{display:flex;flex-direction:column;gap:16px;padding:0 20px}
-.vendor-card{background:var(--card-bg);border-radius:var(--rcard);padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:transform .2s;border:1px solid var(--border)}
+.vendor-cards{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:16px;padding:0 20px;
+}
+.vendor-card{
+  background:var(--card-bg);border-radius:var(--rcard);
+  padding:20px;box-shadow:var(--shadow);
+  cursor:pointer;transition:transform .2s,box-shadow .2s;
+  border:1px solid var(--border);
+}
+.vendor-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .vendor-card:active{transform:scale(.98)}
 .vendor-card-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
 .vendor-emoji{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;flex-shrink:0}
@@ -44,10 +222,15 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .vendor-info p{font-size:.8rem;color:var(--text2);margin-top:2px;line-height:1.4}
 .vendor-tags{display:flex;gap:6px;flex-wrap:wrap}
 .vtag{font-size:.7rem;font-weight:500;padding:3px 9px;border-radius:20px;background:var(--surface2);color:var(--text2)}
-.vendor-cta{margin-top:14px;background:var(--brand);color:#fff;padding:11px;border-radius:12px;text-align:center;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700}
+.vendor-cta{margin-top:14px;background:var(--brand);color:#fff;padding:11px;border-radius:12px;text-align:center;font-family:'Syne',sans-serif;font-size:.85rem;font-weight:700;transition:opacity .2s}
+.vendor-card:hover .vendor-cta{opacity:.9}
 .vendor-card:nth-child(2) .vendor-cta{background:var(--brand2)}
 .vendor-card:nth-child(2) .vendor-emoji{background:#E8F4F0}
 .vendor-card:nth-child(1) .vendor-emoji{background:#FFF0EB}
+
+/* ═══════════════════════════════════════
+   HOW IT WORKS
+═══════════════════════════════════════ */
 .how-section{margin:28px 20px 0;background:var(--surface2);border-radius:var(--rcard);padding:20px}
 .how-section h3{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:14px}
 .how-steps{display:flex;flex-direction:column;gap:12px}
@@ -55,16 +238,28 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .how-num{width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .how-text strong{font-size:.88rem;display:block}
 .how-text span{font-size:.78rem;color:var(--text2)}
+
+/* ═══════════════════════════════════════
+   MENU
+═══════════════════════════════════════ */
 .menu-header{padding:16px 20px 12px;display:flex;align-items:center;gap:12px}
-.back-btn{width:36px;height:36px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.back-btn{width:36px;height:36px;border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background .15s}
+.back-btn:hover{background:var(--border)}
 .menu-vendor-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700}
 .menu-vendor-sub{font-size:.75rem;color:var(--text2)}
 .category-tabs{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none}
 .category-tabs::-webkit-scrollbar{display:none}
 .cat-tab{padding:7px 16px;border-radius:20px;white-space:nowrap;font-size:.8rem;font-weight:500;background:var(--surface2);color:var(--text2);transition:all .2s;flex-shrink:0;cursor:pointer}
 .cat-tab.active{background:var(--brand);color:#fff}
-.meal-list{display:flex;flex-direction:column;gap:12px;padding:0 20px}
-.meal-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border:1px solid var(--border)}
+.meal-list{display:grid;grid-template-columns:1fr;gap:12px;padding:0 20px}
+.meal-card{
+  background:var(--card-bg);border-radius:var(--rcard);
+  padding:16px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;
+  border:1px solid var(--border);
+  transition:box-shadow .2s;
+}
+.meal-card:hover{box-shadow:var(--shadow-md)}
 .meal-emoji{width:56px;height:56px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
 .meal-info{flex:1;min-width:0}
 .meal-info h4{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:2px}
@@ -74,11 +269,27 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .qty-btn{width:30px;height:30px;border-radius:10px;background:var(--surface2);color:var(--text);font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .15s;cursor:pointer}
 .qty-btn.add{background:var(--brand);color:#fff}
 .qty-count{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;min-width:16px;text-align:center}
-.cart-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:390px;background:var(--brand);color:#fff;border-radius:16px;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 32px rgba(255,107,53,.35);z-index:90}
-.cart-bar.hidden{display:none}
+
+/* ═══════════════════════════════════════
+   CART BAR
+═══════════════════════════════════════ */
+.cart-bar{
+  position:fixed;bottom:74px;left:50%;transform:translateX(-50%);
+  width:calc(100% - 40px);max-width:500px;
+  background:var(--brand);color:#fff;
+  border-radius:16px;padding:14px 20px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 8px 32px rgba(255,107,53,.35);z-index:90;
+}
+.cart-bar.hidden{display:none!important}
 .cart-bar-left{font-size:.8rem;opacity:.9}
 .cart-bar-left strong{font-family:'Syne',sans-serif;font-size:1rem;display:block}
 .cart-bar-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer}
+@media(min-width:960px){.cart-bar{bottom:20px}}
+
+/* ═══════════════════════════════════════
+   ORDER SCREEN
+═══════════════════════════════════════ */
 .order-screen{padding:0 20px}
 .order-screen .section-title{padding:16px 0 14px}
 .order-summary-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);margin-bottom:20px}
@@ -89,6 +300,7 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .form-label{font-size:.78rem;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:7px}
 .form-input{width:100%;padding:13px 16px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-size:.95rem;transition:border-color .2s;outline:none}
 .form-input:focus{border-color:var(--brand)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .schedule-chips{display:flex;gap:8px}
 .schedule-chip{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:var(--surface2);border:2px solid transparent;cursor:pointer;transition:all .2s}
 .schedule-chip.selected{background:var(--brand-light);border-color:var(--brand)}
@@ -109,10 +321,19 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .deposit-info-icon{font-size:1.2rem;flex-shrink:0;margin-top:1px}
 .deposit-info-text{font-size:.82rem;line-height:1.5;color:var(--text2)}
 .deposit-info-text strong{color:var(--text)}
+
+/* ═══════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════ */
 .btn-primary{width:100%;padding:15px;border-radius:var(--r);background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;letter-spacing:.3px;transition:opacity .2s,transform .1s;margin-top:8px;cursor:pointer}
-.btn-primary:active{transform:scale(.98);opacity:.9}
+.btn-primary:hover{opacity:.9}
+.btn-primary:active{transform:scale(.98);opacity:.85}
 .btn-primary.green{background:var(--brand2)}
 .btn-primary.ghost{background:var(--surface2);color:var(--text)}
+
+/* ═══════════════════════════════════════
+   CONFIRM SCREEN
+═══════════════════════════════════════ */
 .confirm-screen{padding:0 20px}
 .confirm-success{text-align:center;padding:32px 20px 24px}
 .confirm-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#2D6A4F,#40916C);margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:2rem;box-shadow:0 8px 24px rgba(45,106,79,.3)}
@@ -130,8 +351,15 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 @media(prefers-color-scheme:dark){.whatsapp-note{background:#0D2010}}
 .whatsapp-note-text{font-size:.8rem;line-height:1.5;color:var(--text2)}
 .whatsapp-note-text strong{color:var(--text);display:block;margin-bottom:2px}
+
+/* ═══════════════════════════════════════
+   ORDERS SCREEN
+═══════════════════════════════════════ */
 .orders-screen{padding:0 20px}
-.order-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);margin-bottom:12px;box-shadow:var(--shadow)}
+.orders-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:600px){.orders-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:960px){.orders-grid{grid-template-columns:1fr 1fr 1fr}}
+.order-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);box-shadow:var(--shadow)}
 .order-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
 .order-card-ref{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--brand)}
 .status-badge{font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
@@ -155,19 +383,29 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 .empty-state-icon{font-size:3.5rem;margin-bottom:12px}
 .empty-state h3{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:6px}
 .empty-state p{font-size:.85rem;color:var(--text2);line-height:1.5}
-.auth-screen{min-height:100vh;padding:40px 24px 24px;display:flex;flex-direction:column}
+
+/* ═══════════════════════════════════════
+   AUTH
+═══════════════════════════════════════ */
+.auth-wrapper{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-screen{width:100%;max-width:420px}
 .auth-logo{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;color:var(--brand);margin-bottom:4px}
 .auth-logo span{color:var(--text)}
-.auth-tagline{font-size:.88rem;color:var(--text2);margin-bottom:36px;line-height:1.5}
+.auth-tagline{font-size:.88rem;color:var(--text2);margin-bottom:32px;line-height:1.5}
 .auth-title{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;margin-bottom:4px}
-.auth-sub{font-size:.85rem;color:var(--text2);margin-bottom:28px}
+.auth-sub{font-size:.85rem;color:var(--text2);margin-bottom:24px}
 .auth-switch{text-align:center;margin-top:20px;font-size:.85rem;color:var(--text2)}
-.auth-switch a{color:var(--brand);font-weight:500;text-decoration:none}
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:12px;font-size:.85rem;font-weight:500;z-index:999;transition:transform .3s;white-space:nowrap;max-width:calc(100% - 40px);text-align:center}
+.auth-switch a{color:var(--brand);font-weight:500}
+.auth-card{background:var(--surface);border-radius:24px;padding:32px;box-shadow:var(--shadow-md);border:1px solid var(--border)}
+
+/* ═══════════════════════════════════════
+   TOAST & LOADING
+═══════════════════════════════════════ */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:12px;font-size:.85rem;font-weight:500;z-index:9999;transition:transform .3s;white-space:nowrap;max-width:calc(100% - 40px);text-align:center}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{background:#2D6A4F;color:#fff}
 .toast.error{background:#DC2626;color:#fff}
-.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:999}
+.loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9998}
 .loading-overlay.show{display:flex}
 .spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -179,162 +417,210 @@ h1,h2,h3{font-family:'Syne',sans-serif}
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
-<!-- LOGIN -->
-<div class="screen active" id="screen-login">
-  <div class="auth-screen">
-    <div class="auth-logo">Prep <span>&</span> Go</div>
-    <div class="auth-tagline">Order food ahead — pay small, chop well 🍽️</div>
-    <div class="auth-title">Welcome back</div>
-    <div class="auth-sub">Enter your details to continue</div>
-    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="your@email.com"/></div>
-    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="••••••••"/></div>
-    <button class="btn-primary" onclick="doLogin()">Enter App</button>
-    <div class="auth-switch">New here? <a href="#" onclick="showScreen('screen-signup')">Create account</a></div>
-  </div>
-</div>
+<div class="shell">
 
-<!-- SIGNUP -->
-<div class="screen" id="screen-signup">
-  <div class="auth-screen">
-    <div class="auth-logo">Prep <span>&</span> Go</div>
-    <div class="auth-tagline">Join us — make food stress disappear 🙌</div>
-    <div class="auth-title">Create account</div>
-    <div class="auth-sub">Fill in your details to get started</div>
-    <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="signup-name" placeholder="Kwame Mensah"/></div>
-    <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="signup-email" placeholder="your@email.com"/></div>
-    <div class="form-group"><label class="form-label">WhatsApp Number</label><input class="form-input" type="tel" id="signup-phone" placeholder="+2348012345678"/></div>
-    <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="signup-password" placeholder="Min 8 characters"/></div>
-    <button class="btn-primary" onclick="doSignup()">Create My Account</button>
-    <div class="auth-switch">Get account already? <a href="#" onclick="showScreen('screen-login')">Enter here</a></div>
-  </div>
-</div>
-
-<!-- HOME -->
-<div class="screen" id="screen-home">
-  <div class="topbar">
-    <div class="topbar-logo">Prep <span>&</span> Go</div>
-    <div class="avatar-btn" id="avatarBtn">K</div>
-  </div>
-  <div class="hero">
-    <div class="hero-tag">🔥 Food Pre-Order</div>
-    <h1>Chop better,<br/>plan sharp</h1>
-    <p>Order ahead, pay small deposit — your food go dey ready when you reach.</p>
-    <div class="hero-pills"><span class="hero-pill">⏱ Hourly</span><span class="hero-pill">📅 Daily</span><span class="hero-pill">🗓 Weekly</span></div>
-  </div>
-  <div class="section-title">Choose Your Vendor</div>
-  <div class="vendor-cards" id="vendorCards"></div>
-  <div class="how-section">
-    <h3>How e work?</h3>
-    <div class="how-steps">
-      <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Pick your food</strong><span>Choose from any vendor menu</span></div></div>
-      <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Pay small deposit</strong><span>Lock your order with 30–50% deposit</span></div></div>
-      <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>We go remind you</strong><span>WhatsApp reminder the day before delivery</span></div></div>
-      <div class="how-step"><div class="how-num">4</div><div class="how-text"><strong>Receive your food</strong><span>Pay balance, collect your order 🔥</span></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- MENU -->
-<div class="screen" id="screen-menu">
-  <div class="menu-header">
-    <button class="back-btn" onclick="showScreen('screen-home')">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div><div class="menu-vendor-name" id="menuVendorName">Vendor</div><div class="menu-vendor-sub">Select your meals</div></div>
-  </div>
-  <div class="category-tabs" id="categoryTabs"></div>
-  <div class="meal-list" id="mealList"></div>
-  <div class="cart-bar hidden" id="cartBar">
-    <div class="cart-bar-left"><span id="cartCount">0 items</span><strong id="cartTotal">GHS 0.00</strong></div>
-    <button class="cart-bar-btn" onclick="goToOrder()">Order Now →</button>
-  </div>
-</div>
-
-<!-- ORDER -->
-<div class="screen" id="screen-order">
-  <div class="topbar">
-    <button class="back-btn" onclick="showScreen('screen-menu')">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-    </button>
-    <div class="topbar-logo" style="font-size:1rem">Complete Order</div>
-    <div style="width:36px"></div>
-  </div>
-  <div class="order-screen">
-    <div class="section-title" style="padding-left:0">Your Items</div>
-    <div class="order-summary-card" id="orderSummaryCard"></div>
-    <div class="section-title" style="padding-left:0">Delivery Schedule</div>
-    <div class="schedule-chips">
-      <div class="schedule-chip selected" onclick="selectSchedule(this,'hourly')"><span class="chip-icon">⏱</span><span class="chip-label">Hourly</span><span class="chip-sub">30% deposit</span></div>
-      <div class="schedule-chip" onclick="selectSchedule(this,'daily')"><span class="chip-icon">📅</span><span class="chip-label">Daily</span><span class="chip-sub">40% deposit</span></div>
-      <div class="schedule-chip" onclick="selectSchedule(this,'weekly')"><span class="chip-icon">🗓</span><span class="chip-label">Weekly</span><span class="chip-sub">50% deposit</span></div>
-    </div>
-    <div style="margin-top:16px" class="form-group"><label class="form-label">Delivery Date</label><input class="form-input" type="date" id="deliveryDate"/></div>
-    <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" type="time" id="deliveryTime"/></div>
-    <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" id="orderNotes" placeholder="e.g. No pepper, extra sauce..."/></div>
-    <div class="divider"></div>
-    <div class="section-title" style="padding-left:0">Payment Type</div>
-    <div class="payment-options">
-      <div class="payment-option selected" onclick="selectPayment(this,'deposit')">
-        <span class="payment-option-icon">💳</span>
-        <div class="payment-option-text"><strong>Pay Deposit First</strong><span>Lock order with small deposit. Pay balance on delivery day.</span></div>
-        <span class="payment-badge">Recommended</span>
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">Prep <span>&</span> Go</div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-btn active" id="sb-home" onclick="navTo('screen-home','sb-home');loadVendors()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
       </div>
-      <div class="payment-option" onclick="selectPayment(this,'full')">
-        <span class="payment-option-icon">✅</span>
-        <div class="payment-option-text"><strong>Pay in Full</strong><span>Pay everything now. No balance due.</span></div>
+      <div class="sidebar-btn" id="sb-orders" onclick="navTo('screen-orders','sb-orders');loadOrders()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+        My Orders
+      </div>
+      <div class="sidebar-btn" onclick="doLogout()" style="margin-top:auto;color:var(--text2)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Logout
+      </div>
+    </nav>
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="sidebar-avatar" id="sidebarAvatar">K</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebarName">Loading...</div>
+        <div class="sidebar-user-email" id="sidebarEmail"></div>
       </div>
     </div>
-    <div class="deposit-info" id="depositInfo">
-      <span class="deposit-info-icon">💡</span>
-      <div class="deposit-info-text" id="depositInfoText">Loading...</div>
-    </div>
-    <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()">Place Order & Pay Deposit</button>
-  </div>
-</div>
+  </aside>
 
-<!-- CONFIRMATION -->
-<div class="screen" id="screen-confirm">
-  <div class="confirm-screen">
-    <div class="confirm-success">
-      <div class="confirm-icon">✅</div>
-      <h2>Order Confirmed!</h2>
-      <p>Your food don dey secured. We go WhatsApp you the day before delivery to remind you about your balance.</p>
-    </div>
-    <div class="confirm-ref"><div class="confirm-ref-label">Order Reference</div><div class="confirm-ref-value" id="confirmRef">PG-XXXX</div></div>
-    <div class="confirm-breakdown" id="confirmBreakdown"></div>
-    <div class="whatsapp-note">
-      <span style="font-size:1.2rem">📱</span>
-      <div class="whatsapp-note-text"><strong>WhatsApp reminder activated</strong>You go receive reminder the day before delivery. Pay balance before dispatch.</div>
-    </div>
-    <button class="btn-primary green" onclick="showScreen('screen-orders');loadOrders()">View My Orders</button>
-    <button class="btn-primary ghost" style="margin-top:10px" onclick="showScreen('screen-home')">Back to Home</button>
-  </div>
-</div>
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
 
-<!-- MY ORDERS -->
-<div class="screen" id="screen-orders">
-  <div class="topbar"><div class="topbar-logo">My Orders</div></div>
-  <div class="orders-screen"><div id="ordersList"></div></div>
-</div>
+    <!-- LOGIN -->
+    <div class="screen active" id="screen-login">
+      <div class="auth-wrapper">
+        <div class="auth-screen">
+          <div class="auth-logo">Prep <span>&</span> Go</div>
+          <div class="auth-tagline">Order food ahead — pay small, chop well 🍽️</div>
+          <div class="auth-card">
+            <div class="auth-title">Welcome back</div>
+            <div class="auth-sub">Enter your details to continue</div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="your@email.com"/></div>
+            <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="login-password" placeholder="••••••••"/></div>
+            <button class="btn-primary" onclick="doLogin()">Enter App</button>
+            <div class="auth-switch" style="margin-top:16px">New here? <a href="#" onclick="showScreen('screen-signup')">Create account</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-<!-- BOTTOM NAV -->
+    <!-- SIGNUP -->
+    <div class="screen" id="screen-signup">
+      <div class="auth-wrapper">
+        <div class="auth-screen">
+          <div class="auth-logo">Prep <span>&</span> Go</div>
+          <div class="auth-tagline">Join us — make food stress disappear 🙌</div>
+          <div class="auth-card">
+            <div class="auth-title">Create account</div>
+            <div class="auth-sub">Fill in your details to get started</div>
+            <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" type="text" id="signup-name" placeholder="Amara Mensah"/></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="signup-email" placeholder="your@email.com"/></div>
+              <div class="form-group"><label class="form-label">WhatsApp Number</label><input class="form-input" type="tel" id="signup-phone" placeholder="+2348012345678"/></div>
+            </div>
+            <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" id="signup-password" placeholder="Min 8 characters"/></div>
+            <button class="btn-primary" onclick="doSignup()">Create My Account</button>
+            <div class="auth-switch" style="margin-top:16px">Get account already? <a href="#" onclick="showScreen('screen-login')">Enter here</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOME -->
+    <div class="screen" id="screen-home">
+      <div class="topbar">
+        <div class="topbar-logo">Prep <span>&</span> Go</div>
+        <div class="avatar-btn" id="avatarBtn">K</div>
+      </div>
+      <div class="hero">
+        <div class="hero-tag">🔥 Food Pre-Order</div>
+        <h1>Chop better,<br/>plan sharp</h1>
+        <p>Order ahead, pay small deposit — your food go dey ready when you reach.</p>
+        <div class="hero-pills"><span class="hero-pill">⏱ Hourly</span><span class="hero-pill">📅 Daily</span><span class="hero-pill">🗓 Weekly</span></div>
+      </div>
+      <div class="section-title">Choose Your Vendor</div>
+      <div class="vendor-cards" id="vendorCards"></div>
+      <div class="how-section">
+        <h3>How e work?</h3>
+        <div class="how-steps">
+          <div class="how-step"><div class="how-num">1</div><div class="how-text"><strong>Pick your food</strong><span>Choose from any vendor menu — add as many meals as you want</span></div></div>
+          <div class="how-step"><div class="how-num">2</div><div class="how-text"><strong>Pay small deposit</strong><span>Lock your order with 30–50% deposit. Pay balance on delivery day.</span></div></div>
+          <div class="how-step"><div class="how-num">3</div><div class="how-text"><strong>We go remind you</strong><span>WhatsApp reminder go reach you the day before delivery</span></div></div>
+          <div class="how-step"><div class="how-num">4</div><div class="how-text"><strong>Receive your food</strong><span>Pay balance, collect your order — fresh and hot 🔥</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div class="screen" id="screen-menu">
+      <div class="menu-header">
+        <button class="back-btn" onclick="showScreen('screen-home')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div><div class="menu-vendor-name" id="menuVendorName">Vendor</div><div class="menu-vendor-sub">Select your meals</div></div>
+      </div>
+      <div class="category-tabs" id="categoryTabs"></div>
+      <div class="meal-list" id="mealList"></div>
+      <div class="cart-bar hidden" id="cartBar">
+        <div class="cart-bar-left"><span id="cartCount">0 items</span><strong id="cartTotal">₦0.00</strong></div>
+        <button class="cart-bar-btn" onclick="goToOrder()">Order Now →</button>
+      </div>
+    </div>
+
+    <!-- ORDER -->
+    <div class="screen" id="screen-order">
+      <div class="topbar">
+        <button class="back-btn" onclick="showScreen('screen-menu')">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="topbar-logo" style="font-size:1rem">Complete Order</div>
+        <div style="width:36px"></div>
+      </div>
+      <div class="order-screen">
+        <div class="section-title" style="padding-left:0">Your Items</div>
+        <div class="order-summary-card" id="orderSummaryCard"></div>
+        <div class="section-title" style="padding-left:0">Delivery Schedule</div>
+        <div class="schedule-chips">
+          <div class="schedule-chip selected" onclick="selectSchedule(this,'hourly')"><span class="chip-icon">⏱</span><span class="chip-label">Hourly</span><span class="chip-sub">30% deposit</span></div>
+          <div class="schedule-chip" onclick="selectSchedule(this,'daily')"><span class="chip-icon">📅</span><span class="chip-label">Daily</span><span class="chip-sub">40% deposit</span></div>
+          <div class="schedule-chip" onclick="selectSchedule(this,'weekly')"><span class="chip-icon">🗓</span><span class="chip-label">Weekly</span><span class="chip-sub">50% deposit</span></div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Delivery Date</label><input class="form-input" type="date" id="deliveryDate"/></div>
+            <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" type="time" id="deliveryTime"/></div>
+          </div>
+          <div class="form-group"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" id="orderNotes" placeholder="e.g. No pepper, extra sauce..."/></div>
+        </div>
+        <div class="divider"></div>
+        <div class="section-title" style="padding-left:0">Payment Type</div>
+        <div class="payment-options">
+          <div class="payment-option selected" onclick="selectPayment(this,'deposit')">
+            <span class="payment-option-icon">💳</span>
+            <div class="payment-option-text"><strong>Pay Deposit First</strong><span>Lock order with small deposit. Pay balance on delivery day.</span></div>
+            <span class="payment-badge">Recommended</span>
+          </div>
+          <div class="payment-option" onclick="selectPayment(this,'full')">
+            <span class="payment-option-icon">✅</span>
+            <div class="payment-option-text"><strong>Pay in Full</strong><span>Pay everything now. No balance due on delivery.</span></div>
+          </div>
+        </div>
+        <div class="deposit-info" id="depositInfo">
+          <span class="deposit-info-icon">💡</span>
+          <div class="deposit-info-text" id="depositInfoText">Loading...</div>
+        </div>
+        <button class="btn-primary" id="placeOrderBtn" onclick="placeOrder()">Place Order & Pay Deposit</button>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION -->
+    <div class="screen" id="screen-confirm">
+      <div class="confirm-screen">
+        <div class="confirm-success">
+          <div class="confirm-icon">✅</div>
+          <h2>Order Confirmed!</h2>
+          <p>Your food don dey secured. We go WhatsApp you the day before delivery to remind you about your balance.</p>
+        </div>
+        <div class="confirm-ref"><div class="confirm-ref-label">Order Reference</div><div class="confirm-ref-value" id="confirmRef">PG-XXXX</div></div>
+        <div class="confirm-breakdown" id="confirmBreakdown"></div>
+        <div class="whatsapp-note">
+          <span style="font-size:1.2rem">📱</span>
+          <div class="whatsapp-note-text"><strong>WhatsApp reminder activated</strong>You go receive reminder the day before delivery. Pay balance before dispatch.</div>
+        </div>
+        <button class="btn-primary green" onclick="navTo('screen-orders','sb-orders');loadOrders()">View My Orders</button>
+        <button class="btn-primary ghost" style="margin-top:10px" onclick="navTo('screen-home','sb-home')">Back to Home</button>
+      </div>
+    </div>
+
+    <!-- MY ORDERS -->
+    <div class="screen" id="screen-orders">
+      <div class="topbar"><div class="topbar-logo">My Orders</div></div>
+      <div class="orders-screen">
+        <div class="orders-grid" id="ordersList"></div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /shell -->
+
+<!-- BOTTOM NAV (mobile) -->
 <nav class="bottom-nav" id="bottomNav" style="display:none">
-  <button class="nav-btn active" onclick="navTo('screen-home',this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    Home
+  <button class="nav-btn active" id="bn-home" onclick="mobileNav('screen-home','bn-home');loadVendors()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
   </button>
-  <button class="nav-btn" onclick="navTo('screen-orders',this);loadOrders()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-    My Orders
+  <button class="nav-btn" id="bn-orders" onclick="mobileNav('screen-orders','bn-orders');loadOrders()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>My Orders
   </button>
   <button class="nav-btn" onclick="doLogout()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Logout
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout
   </button>
 </nav>
 
 <script>
 const API = window.location.origin;
+const CURRENCY = '₦';
 let token = localStorage.getItem('pg_token')||null;
 let currentUser = JSON.parse(localStorage.getItem('pg_user')||'null');
 let currentVendor = null;
@@ -343,26 +629,64 @@ let selectedSchedule = 'hourly';
 let selectedPayment = 'deposit';
 const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
 
+function fmt(n){ return CURRENCY + Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
 window.addEventListener('DOMContentLoaded',()=>{
-  if(token && currentUser) showMainApp();
-  const d = document.getElementById('deliveryDate');
+  if(token && currentUser){ showMainApp(); }
+  const d=document.getElementById('deliveryDate');
   if(d){const t=new Date();t.setDate(t.getDate()+1);d.min=t.toISOString().split('T')[0];}
 });
 
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
-function navTo(id,btn){showScreen(id);document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
-function showMainApp(){document.getElementById('bottomNav').style.display='flex';if(currentUser)document.getElementById('avatarBtn').textContent=(currentUser.name||'U')[0].toUpperCase();showScreen('screen-home');loadVendors();}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// Desktop sidebar nav
+function navTo(screenId, btnId){
+  showScreen(screenId);
+  document.querySelectorAll('.sidebar-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById(btnId);
+  if(btn) btn.classList.add('active');
+}
+
+// Mobile bottom nav
+function mobileNav(screenId, btnId){
+  showScreen(screenId);
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById(btnId);
+  if(btn) btn.classList.add('active');
+}
+
+function showMainApp(){
+  document.getElementById('bottomNav').style.display='flex';
+  document.getElementById('sidebar').style.display='flex';
+  if(currentUser){
+    const init=(currentUser.name||'U')[0].toUpperCase();
+    document.getElementById('avatarBtn').textContent=init;
+    document.getElementById('sidebarAvatar').textContent=init;
+    document.getElementById('sidebarName').textContent=currentUser.name||'';
+    document.getElementById('sidebarEmail').textContent=currentUser.email||'';
+  }
+  showScreen('screen-home');
+  loadVendors();
+}
 
 async function apiFetch(path,opts={}){
   const h={'Content-Type':'application/json'};
-  if(token)h['Authorization']=`Bearer ${token}`;
+  if(token) h['Authorization']=`Bearer ${token}`;
   const r=await fetch(API+path,{...opts,headers:h});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(d.detail||'Something went wrong');
+  if(!r.ok) throw new Error(d.detail||'Something went wrong');
   return d;
 }
 
-function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;setTimeout(()=>t.className='toast',3000);}
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show '+type;
+  setTimeout(()=>t.className='toast',3200);
+}
 function showLoading(v){document.getElementById('loadingOverlay').classList.toggle('show',v);}
 
 async function doSignup(){
@@ -370,30 +694,47 @@ async function doSignup(){
   const email=document.getElementById('signup-email').value.trim();
   const phone=document.getElementById('signup-phone').value.trim();
   const password=document.getElementById('signup-password').value;
-  if(!name||!email||!phone||!password)return showToast('Fill all fields','error');
+  if(!name||!email||!phone||!password) return showToast('Fill all fields','error');
   showLoading(true);
-  try{await apiFetch('/signup',{method:'POST',body:JSON.stringify({name,email,phone,password})});showToast('Account created! Login now 🎉','success');showScreen('screen-login');document.getElementById('login-email').value=email;}
-  catch(e){showToast(e.message,'error');}
+  try{
+    await apiFetch('/signup',{method:'POST',body:JSON.stringify({name,email,phone,password})});
+    showToast('Account created! Login now 🎉','success');
+    showScreen('screen-login');
+    document.getElementById('login-email').value=email;
+  }catch(e){showToast(e.message,'error');}
   showLoading(false);
 }
 
 async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const password=document.getElementById('login-password').value;
-  if(!email||!password)return showToast('Enter email and password','error');
+  if(!email||!password) return showToast('Enter email and password','error');
   showLoading(true);
-  try{const d=await apiFetch('/login',{method:'POST',body:JSON.stringify({email,password})});token=d.access_token;currentUser=d.user;localStorage.setItem('pg_token',token);localStorage.setItem('pg_user',JSON.stringify(currentUser));showToast('Welcome back! 🙌','success');showMainApp();}
-  catch(e){showToast(e.message,'error');}
+  try{
+    const d=await apiFetch('/login',{method:'POST',body:JSON.stringify({email,password})});
+    token=d.access_token; currentUser=d.user;
+    localStorage.setItem('pg_token',token);
+    localStorage.setItem('pg_user',JSON.stringify(currentUser));
+    showToast('Welcome back! 🙌','success');
+    showMainApp();
+  }catch(e){showToast(e.message,'error');}
   showLoading(false);
 }
 
-function doLogout(){token=null;currentUser=null;localStorage.removeItem('pg_token');localStorage.removeItem('pg_user');document.getElementById('bottomNav').style.display='none';showScreen('screen-login');showToast('You don logout');}
+function doLogout(){
+  token=null; currentUser=null;
+  localStorage.removeItem('pg_token'); localStorage.removeItem('pg_user');
+  document.getElementById('bottomNav').style.display='none';
+  document.getElementById('sidebar').style.display='none';
+  showScreen('screen-login');
+  showToast('You don logout');
+}
 
 async function loadVendors(){
   try{
     const vendors=await apiFetch('/vendors');
     const colors=['#FF6B35','#2D6A4F'];
-    const emojis=['🥘','🍟'];
+    const emojis=['👨‍🍳','🥜'];
     document.getElementById('vendorCards').innerHTML=vendors.map((v,i)=>`
       <div class="vendor-card" onclick="openVendor(${v.id},'${esc(v.name)}','${esc(v.description||'')}')">
         <div class="vendor-card-top">
@@ -410,6 +751,19 @@ async function openVendor(id,name,desc){
   cart={};currentVendor={id,name};
   document.getElementById('menuVendorName').textContent=name;
   updateCartBar();showScreen('screen-menu');
+
+  // Show discount banner for Chef'N
+  const isChef = name.toLowerCase().includes('chef');
+  const existingBanner = document.getElementById('discountBanner');
+  if(existingBanner) existingBanner.remove();
+  if(isChef){
+    const banner=document.createElement('div');
+    banner.id='discountBanner';
+    banner.style.cssText='margin:0 20px 16px;padding:12px 16px;background:linear-gradient(135deg,#D1FAE5,#A7F3D0);border:1px solid #2D6A4F;border-radius:14px;display:flex;gap:10px;align-items:center;font-size:.82rem;line-height:1.5';
+    banner.innerHTML='<span style="font-size:1.3rem">🏷️</span><div><strong style="color:#065F46;display:block">10% Discount Available!</strong><span style="color:#047857">Order 10+ of any single meal, or 10+ items total — and you go save 10% automatically.</span></div>';
+    document.getElementById('categoryTabs').before(banner);
+  }
+
   showLoading(true);
   try{const data=await apiFetch(`/vendors/${id}/menu`);renderMenu(data);}
   catch(e){showToast('No fit load menu','error');}
@@ -418,23 +772,53 @@ async function openVendor(id,name,desc){
 
 function renderMenu(meals){
   const cats=[...new Set(meals.map(m=>m.category))];
-  document.getElementById('categoryTabs').innerHTML=['All',...cats].map((c,i)=>`<div class="cat-tab ${i===0?'active':''}" onclick="filterCat(this,'${c}')">${c}</div>`).join('');
-  window._meals=meals;renderMealCards(meals);
+  document.getElementById('categoryTabs').innerHTML=
+    ['All',...cats].map((c,i)=>`<div class="cat-tab ${i===0?'active':''}" onclick="filterCat(this,'${c}')">${c}</div>`).join('');
+  window._meals=meals; renderMealCards(meals);
 }
 
 function filterCat(el,cat){
-  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
   renderMealCards(cat==='All'?window._meals:window._meals.filter(m=>m.category===cat));
 }
 
-const EMOJI_MAP={'Rice Dishes':'🍚','Local Favourites':'🍲','Soups & Stews':'🥘','Burgers':'🍔','Sides':'🍟','Chicken':'🍗','Wraps':'🌯','Mains':'🍽️','Healthy':'🥗'};
+const CHEFN_DISCOUNT = 0.10;
+const CHEFN_THRESHOLD = 10;
+
+function isChefN(){ return currentVendor && currentVendor.name && currentVendor.name.toLowerCase().includes("chef"); }
+
+function calcDiscount(){
+  if(!isChefN()) return { discounted: false, amount: 0, reason: null };
+  const items = Object.values(cart);
+  const totalQty = items.reduce((s,i)=>s+i.quantity,0);
+  const orderDiscount = totalQty >= CHEFN_THRESHOLD;
+  const anyItemDiscount = items.some(i=>i.quantity >= CHEFN_THRESHOLD);
+  const applies = orderDiscount || anyItemDiscount;
+  if(!applies) return { discounted: false, amount: 0, reason: null };
+  const raw = items.reduce((s,i)=>s+i.price*i.quantity,0);
+  const discountAmt = raw * CHEFN_DISCOUNT;
+  const reason = orderDiscount
+    ? `10% off — ${totalQty} total items`
+    : `10% off — qty ≥ ${CHEFN_THRESHOLD} on one meal`;
+  return { discounted: true, amount: discountAmt, reason, raw, final: raw - discountAmt };
+}
+  'Rice':'🍚','Pasta':'🍝','Beans':'🫘',
+  'Snacks':'🥜','Fresh Drinks':'🥤','Small Chops':'🥟',
+  'Rice Dishes':'🍚','Soups & Stews':'🥘','Burgers':'🍔',
+  'Sides':'🍟','Chicken':'🍗','Wraps':'🌯','Mains':'🍽️','Healthy':'🥗'
+};
 
 function renderMealCards(meals){
   document.getElementById('mealList').innerHTML=meals.map(m=>{
     const qty=cart[m.id]?cart[m.id].quantity:0;
     return `<div class="meal-card">
-      <div class="meal-emoji">${EMOJI_MAP[m.category]||'🍛'}</div>
-      <div class="meal-info"><h4>${esc(m.name)}</h4><p>${esc(m.description||'')}</p><div class="meal-price">GHS ${m.price.toFixed(2)}</div></div>
+      <div class="meal-emoji">${EMOJIS[m.category]||'🍛'}</div>
+      <div class="meal-info">
+        <h4>${esc(m.name)}</h4>
+        <p>${esc(m.description||'')}</p>
+        <div class="meal-price">${fmt(m.price)}</div>
+      </div>
       <div class="meal-actions">
         <button class="qty-btn" onclick="updateCart(${m.id},${m.price},'${esc(m.name)}',-1)">−</button>
         <span class="qty-count" id="qty-${m.id}">${qty}</span>
@@ -445,82 +829,133 @@ function renderMealCards(meals){
 }
 
 function updateCart(id,price,name,delta){
-  if(!cart[id])cart[id]={meal_id:id,price,name,quantity:0};
+  if(!cart[id]) cart[id]={meal_id:id,price,name,quantity:0};
   cart[id].quantity=Math.max(0,cart[id].quantity+delta);
-  if(cart[id].quantity===0)delete cart[id];
-  document.getElementById(`qty-${id}`).textContent=cart[id]?.quantity||0;
+  if(cart[id].quantity===0) delete cart[id];
+  const el=document.getElementById(`qty-${id}`);
+  if(el) el.textContent=cart[id]?.quantity||0;
   updateCartBar();
 }
 
 function updateCartBar(){
   const items=Object.values(cart);
-  const total=items.reduce((s,i)=>s+i.price*i.quantity,0);
   const count=items.reduce((s,i)=>s+i.quantity,0);
+  const raw=items.reduce((s,i)=>s+i.price*i.quantity,0);
+  const disc=calcDiscount();
+  const total=disc.discounted ? disc.final : raw;
   const bar=document.getElementById('cartBar');
   if(!count){bar.classList.add('hidden');return;}
   bar.classList.remove('hidden');
   document.getElementById('cartCount').textContent=`${count} item${count>1?'s':''}`;
-  document.getElementById('cartTotal').textContent=`GHS ${total.toFixed(2)}`;
+  document.getElementById('cartTotal').textContent=fmt(total)+(disc.discounted?' 🏷️':'');
 }
 
-function getCartTotal(){return Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);}
+function getCartTotal(){
+  const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
+  const disc=calcDiscount();
+  return disc.discounted ? disc.final : raw;
+}
 
 function goToOrder(){
-  if(!Object.keys(cart).length)return showToast('Add at least one item first');
-  renderOrderSummary();updateDepositInfo();showScreen('screen-order');
+  if(!Object.keys(cart).length) return showToast('Add at least one item first');
+  renderOrderSummary(); updateDepositInfo(); showScreen('screen-order');
 }
 
 function renderOrderSummary(){
   const items=Object.values(cart);
-  const total=getCartTotal();
-  document.getElementById('orderSummaryCard').innerHTML=
-    items.map(i=>`<div class="order-item-row"><span>${esc(i.name)} × ${i.quantity}</span><span>GHS ${(i.price*i.quantity).toFixed(2)}</span></div>`).join('')+
-    `<div class="order-total-row"><span>Total</span><span style="color:var(--brand)">GHS ${total.toFixed(2)}</span></div>`;
+  const raw=items.reduce((s,i)=>s+i.price*i.quantity,0);
+  const disc=calcDiscount();
+  const total=disc.discounted ? disc.final : raw;
+
+  let rows=items.map(i=>`
+    <div class="order-item-row">
+      <span>${esc(i.name)} × ${i.quantity}</span>
+      <span>${fmt(i.price*i.quantity)}</span>
+    </div>`).join('');
+
+  if(disc.discounted){
+    rows+=`
+    <div class="order-item-row" style="color:#2D6A4F;font-weight:500">
+      <span>🏷️ ${disc.reason}</span>
+      <span>−${fmt(disc.amount)}</span>
+    </div>`;
+  }
+
+  rows+=`<div class="order-total-row">
+    <span>Total</span>
+    <span style="color:var(--brand)">${fmt(total)}</span>
+  </div>`;
+
+  document.getElementById('orderSummaryCard').innerHTML=rows;
 }
 
 function selectSchedule(el,type){
   document.querySelectorAll('.schedule-chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected');selectedSchedule=type;updateDepositInfo();
+  el.classList.add('selected'); selectedSchedule=type; updateDepositInfo();
 }
 
 function selectPayment(el,type){
   document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');selectedPayment=type;updateDepositInfo();
-  document.getElementById('placeOrderBtn').textContent=type==='full'?'Place Order & Pay in Full':'Place Order & Pay Deposit';
+  el.classList.add('selected'); selectedPayment=type; updateDepositInfo();
+  document.getElementById('placeOrderBtn').textContent=
+    type==='full'?'Place Order & Pay in Full':'Place Order & Pay Deposit';
 }
 
 function updateDepositInfo(){
-  const total=getCartTotal();
+  const raw=getCartTotal();
+  const disc=calcDiscount();
+  const total=disc.discounted ? disc.final : raw;
   const info=document.getElementById('depositInfo');
   if(selectedPayment==='full'){info.style.display='none';return;}
   info.style.display='flex';
   const rate=DEPOSIT_RATES[selectedSchedule];
+  const depositAmt=total*rate;
+  const balanceAmt=total*(1-rate);
   document.getElementById('depositInfoText').innerHTML=
-    `<strong>You go pay GHS ${(total*rate).toFixed(2)} now (${Math.round(rate*100)}% deposit).</strong> Balance of GHS ${(total*(1-rate)).toFixed(2)} go be due on delivery day. We go WhatsApp remind you.`;
+    `<strong>You go pay ${fmt(depositAmt)} now (${Math.round(rate*100)}% deposit).</strong>`+
+    (disc.discounted?` <span style="color:#2D6A4F">10% discount don apply — you save ${fmt(disc.amount)}!</span> `:'  ')+
+    `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
 
 async function placeOrder(){
   const date=document.getElementById('deliveryDate').value;
   const time=document.getElementById('deliveryTime').value;
-  if(!date)return showToast('Select a delivery date','error');
-  if(!time)return showToast('Select a delivery time','error');
-  const payload={vendor_id:currentVendor.id,schedule_type:selectedSchedule,delivery_date:date+'T'+time+':00',delivery_time:time,payment_type:selectedPayment,items:Object.values(cart).map(i=>({meal_id:i.meal_id,quantity:i.quantity})),notes:document.getElementById('orderNotes').value||null};
+  if(!date) return showToast('Select a delivery date','error');
+  if(!time) return showToast('Select a delivery time','error');
+  const payload={
+    vendor_id:currentVendor.id,
+    schedule_type:selectedSchedule,
+    delivery_date:date+'T'+time+':00',
+    delivery_time:time,
+    payment_type:selectedPayment,
+    items:Object.values(cart).map(i=>({meal_id:i.meal_id,quantity:i.quantity})),
+    notes:document.getElementById('orderNotes').value||null
+  };
   showLoading(true);
-  try{const order=await apiFetch('/orders',{method:'POST',body:JSON.stringify(payload)});showConfirmation(order);}
-  catch(e){showToast(e.message,'error');}
+  try{
+    const order=await apiFetch('/orders',{method:'POST',body:JSON.stringify(payload)});
+    showConfirmation(order);
+  }catch(e){showToast(e.message,'error');}
   showLoading(false);
 }
 
 function showConfirmation(order){
   document.getElementById('confirmRef').textContent=order.order_ref;
+  const discountRow = order.discount_applied
+    ? `<div class="confirm-row" style="color:#2D6A4F;font-weight:500">
+        <span>🏷️ 10% Discount Applied</span>
+        <span>−${fmt(order.discount_amount)}</span>
+       </div>`
+    : '';
   document.getElementById('confirmBreakdown').innerHTML=`
     <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
     <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
     <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
-    <div class="confirm-row"><span>Order Total</span><span>GHS ${order.total_price.toFixed(2)}</span></div>
-    <div class="confirm-row highlight"><span>Deposit to Pay</span><span>GHS ${order.deposit_amount.toFixed(2)}</span></div>
-    <div class="confirm-row"><span>Balance on Delivery</span><span>GHS ${order.balance_due.toFixed(2)}</span></div>`;
-  cart={};updateCartBar();showScreen('screen-confirm');
+    ${discountRow}
+    <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
+    <div class="confirm-row highlight"><span>Deposit to Pay</span><span>${fmt(order.deposit_amount)}</span></div>
+    <div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`;
+  cart={}; updateCartBar(); showScreen('screen-confirm');
 }
 
 async function loadOrders(){
@@ -528,29 +963,48 @@ async function loadOrders(){
   c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2)">Loading...</div>';
   try{
     const orders=await apiFetch('/orders/my');
-    if(!orders.length){c.innerHTML='<div class="empty-state"><div class="empty-state-icon">📦</div><h3>No orders yet</h3><p>Go choose your food and order now!</p></div>';return;}
+    if(!orders.length){
+      c.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">📦</div>
+        <h3>No orders yet</h3>
+        <p>Go choose your food and order now!</p>
+      </div>`;
+      return;
+    }
     c.innerHTML=orders.map(o=>{
       const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
       return `<div class="order-card">
-        <div class="order-card-top"><div class="order-card-ref">${o.order_ref}</div><div class="status-badge status-${o.status}">${o.status}</div></div>
+        <div class="order-card-top">
+          <div class="order-card-ref">${o.order_ref}</div>
+          <div class="status-badge status-${o.status}">${o.status}</div>
+        </div>
         <div class="order-card-vendor"><strong>${esc(o.vendor_name||'Vendor')}</strong></div>
         <div class="order-card-items">${(o.items||[]).map(i=>`${esc(i.name||'Item')} × ${i.quantity}`).join(', ')||'—'}</div>
-        <div class="order-card-footer"><div class="order-card-total">GHS ${o.total_price.toFixed(2)}</div><div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div></div>
-        ${needsBal?`<div class="balance-alert"><div class="balance-alert-text"><strong>Balance due: GHS ${o.balance_due.toFixed(2)}</strong>Pay before dispatch or your order go cancel</div><button class="pay-balance-btn" onclick="payBalance(${o.id},${o.balance_due})">Pay Now</button></div>`:''}
+        <div class="order-card-footer">
+          <div class="order-card-total">${fmt(o.total_price)}</div>
+          <div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div>
+        </div>
+        ${needsBal?`<div class="balance-alert">
+          <div class="balance-alert-text"><strong>Balance: ${fmt(o.balance_due)}</strong>Pay before dispatch</div>
+          <button class="pay-balance-btn" onclick="payBalance(${o.id},${o.balance_due})">Pay Now</button>
+        </div>`:''}
       </div>`;
     }).join('');
-  }catch(e){c.innerHTML=`<div class="empty-state"><p>${e.message}</p></div>`;}
+  }catch(e){c.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
 }
 
 async function payBalance(orderId,amount){
   showLoading(true);
-  try{await apiFetch('/payments',{method:'POST',body:JSON.stringify({order_id:orderId,amount,payment_type:'balance',method:'mobile_money'})});showToast('Balance paid! ✅','success');loadOrders();}
-  catch(e){showToast(e.message,'error');}
+  try{
+    await apiFetch('/payments',{method:'POST',body:JSON.stringify({order_id:orderId,amount,payment_type:'balance',method:'mobile_money'})});
+    showToast('Balance paid! ✅','success');
+    loadOrders();
+  }catch(e){showToast(e.message,'error');}
   showLoading(false);
 }
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function fmtDate(s){if(!s)return'';try{return new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
+function fmtDate(s){if(!s)return'';try{return new Date(s).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'});}catch(e){return s;}}
 </script>
 </body>
 </html>
