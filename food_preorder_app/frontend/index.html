@@ -131,8 +131,7 @@ img{display:block;max-width:100%}
   .order-screen{max-width:700px;margin:0 auto;padding:0 32px}
   .confirm-screen{max-width:600px;margin:0 auto;padding:0 32px}
   .orders-screen{max-width:800px;margin:0 auto;padding:0 32px}
-  /* FIX 6: corrected cart-bar centering on desktop to account for sidebar properly */
-  .cart-bar{bottom:20px;left:calc(var(--sidebar) + (100vw - var(--sidebar) - (100% - 40px)) / 2);transform:none;width:calc(100% - 40px);max-width:500px}
+  .cart-bar{max-width:860px;left:calc(var(--sidebar) + 50%);transform:translateX(-50%)}
   .auth-screen{max-width:440px;margin:0 auto}
 }
 
@@ -286,6 +285,7 @@ img{display:block;max-width:100%}
 .cart-bar-left{font-size:.8rem;opacity:.9}
 .cart-bar-left strong{font-family:'Syne',sans-serif;font-size:1rem;display:block}
 .cart-bar-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;padding:8px 16px;border-radius:10px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer}
+@media(min-width:960px){.cart-bar{bottom:20px}}
 
 /* ═══════════════════════════════════════
    ORDER SCREEN
@@ -629,14 +629,6 @@ let selectedSchedule = 'hourly';
 let selectedPayment = 'deposit';
 const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
 
-// FIX 1: Properly declared EMOJIS constant (was a stray object literal with no `const` declaration, causing a syntax error)
-const EMOJIS = {
-  'Rice':'🍚','Pasta':'🍝','Beans':'🫘',
-  'Snacks':'🥜','Fresh Drinks':'🥤','Small Chops':'🥟',
-  'Rice Dishes':'🍚','Soups & Stews':'🥘','Burgers':'🍔',
-  'Sides':'🍟','Chicken':'🍗','Wraps':'🌯','Mains':'🍽️','Healthy':'🥗'
-};
-
 function fmt(n){ return CURRENCY + Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 window.addEventListener('DOMContentLoaded',()=>{
@@ -668,9 +660,8 @@ function mobileNav(screenId, btnId){
 }
 
 function showMainApp(){
-  // FIX 2: Use removeAttribute instead of setting inline display style, so CSS media queries retain control of sidebar visibility
   document.getElementById('bottomNav').style.display='flex';
-  document.getElementById('sidebar').removeAttribute('style');
+  document.getElementById('sidebar').style.display='flex';
   if(currentUser){
     const init=(currentUser.name||'U')[0].toUpperCase();
     document.getElementById('avatarBtn').textContent=init;
@@ -734,7 +725,6 @@ function doLogout(){
   token=null; currentUser=null;
   localStorage.removeItem('pg_token'); localStorage.removeItem('pg_user');
   document.getElementById('bottomNav').style.display='none';
-  // FIX 3: Hide sidebar on logout by setting display:none explicitly (mirrors the original intent)
   document.getElementById('sidebar').style.display='none';
   showScreen('screen-login');
   showToast('You don logout');
@@ -743,13 +733,12 @@ function doLogout(){
 async function loadVendors(){
   try{
     const vendors=await apiFetch('/vendors');
-    // FIX 4: Use modulo so color/emoji arrays never go out-of-bounds for any number of vendors
-    const colors=['#FF6B35','#2D6A4F','#6A4D2D','#2D4D6A'];
-    const emojis=['👨‍🍳','🥜','🍱','🍜'];
+    const colors=['#FF6B35','#2D6A4F'];
+    const emojis=['👨‍🍳','🥜'];
     document.getElementById('vendorCards').innerHTML=vendors.map((v,i)=>`
       <div class="vendor-card" onclick="openVendor(${v.id},'${esc(v.name)}','${esc(v.description||'')}')">
         <div class="vendor-card-top">
-          <div class="vendor-emoji" style="background:${colors[i % colors.length]}20">${emojis[i % emojis.length]}</div>
+          <div class="vendor-emoji" style="background:${colors[i]}20">${emojis[i]}</div>
           <div class="vendor-info"><h3>${esc(v.name)}</h3><p>${esc(v.description||'Delicious meals available')}</p></div>
         </div>
         <div class="vendor-tags"><span class="vtag">Pre-Order</span><span class="vtag">Deposit Option</span><span class="vtag">WhatsApp Reminder</span></div>
@@ -761,16 +750,12 @@ async function loadVendors(){
 async function openVendor(id,name,desc){
   cart={};currentVendor={id,name};
   document.getElementById('menuVendorName').textContent=name;
-  updateCartBar();
-
-  // FIX 5: Remove old discount banner BEFORE switching screen, preventing stale banner flash
-  const existingBanner = document.getElementById('discountBanner');
-  if(existingBanner) existingBanner.remove();
-
-  showScreen('screen-menu');
+  updateCartBar();showScreen('screen-menu');
 
   // Show discount banner for Chef'N
   const isChef = name.toLowerCase().includes('chef');
+  const existingBanner = document.getElementById('discountBanner');
+  if(existingBanner) existingBanner.remove();
   if(isChef){
     const banner=document.createElement('div');
     banner.id='discountBanner';
@@ -778,13 +763,6 @@ async function openVendor(id,name,desc){
     banner.innerHTML='<span style="font-size:1.3rem">🏷️</span><div><strong style="color:#065F46;display:block">10% Discount Available!</strong><span style="color:#047857">Order 10+ of any single meal, or 10+ items total — and you go save 10% automatically.</span></div>';
     document.getElementById('categoryTabs').before(banner);
   }
-
-  // FIX 9: Reset order form state (schedule + payment) each time a vendor is opened
-  selectedSchedule = 'hourly';
-  selectedPayment = 'deposit';
-  document.querySelectorAll('.schedule-chip').forEach((c,i)=>c.classList.toggle('selected',i===0));
-  document.querySelectorAll('.payment-option').forEach((o,i)=>o.classList.toggle('selected',i===0));
-  document.getElementById('placeOrderBtn').textContent = 'Place Order & Pay Deposit';
 
   showLoading(true);
   try{const data=await apiFetch(`/vendors/${id}/menu`);renderMenu(data);}
@@ -825,6 +803,11 @@ function calcDiscount(){
     : `10% off — qty ≥ ${CHEFN_THRESHOLD} on one meal`;
   return { discounted: true, amount: discountAmt, reason, raw, final: raw - discountAmt };
 }
+  'Rice':'🍚','Pasta':'🍝','Beans':'🫘',
+  'Snacks':'🥜','Fresh Drinks':'🥤','Small Chops':'🥟',
+  'Rice Dishes':'🍚','Soups & Stews':'🥘','Burgers':'🍔',
+  'Sides':'🍟','Chicken':'🍗','Wraps':'🌯','Mains':'🍽️','Healthy':'🥗'
+};
 
 function renderMealCards(meals){
   document.getElementById('mealList').innerHTML=meals.map(m=>{
@@ -857,7 +840,6 @@ function updateCart(id,price,name,delta){
 function updateCartBar(){
   const items=Object.values(cart);
   const count=items.reduce((s,i)=>s+i.quantity,0);
-  // FIX 5 (updateCartBar): compute raw locally so it's always in scope
   const raw=items.reduce((s,i)=>s+i.price*i.quantity,0);
   const disc=calcDiscount();
   const total=disc.discounted ? disc.final : raw;
@@ -868,7 +850,6 @@ function updateCartBar(){
   document.getElementById('cartTotal').textContent=fmt(total)+(disc.discounted?' 🏷️':'');
 }
 
-// FIX 7: `getCartTotal` now computes `raw` locally (was referencing `raw` from calcDiscount's closure scope, which is unreachable)
 function getCartTotal(){
   const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
   const disc=calcDiscount();
@@ -921,8 +902,7 @@ function selectPayment(el,type){
 }
 
 function updateDepositInfo(){
-  // FIX 8: compute raw locally here too so it's always in scope
-  const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
+  const raw=getCartTotal();
   const disc=calcDiscount();
   const total=disc.discounted ? disc.final : raw;
   const info=document.getElementById('depositInfo');
@@ -992,7 +972,6 @@ async function loadOrders(){
       return;
     }
     c.innerHTML=orders.map(o=>{
-      // FIX 10: only show balance alert when balance is actually unpaid AND status is 'confirmed'
       const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
       return `<div class="order-card">
         <div class="order-card-top">
@@ -1017,8 +996,7 @@ async function loadOrders(){
 async function payBalance(orderId,amount){
   showLoading(true);
   try{
-    // FIX 11: Use correct endpoint path with orderId; was calling /payments without the order context
-    await apiFetch(`/orders/${orderId}/pay-balance`,{method:'POST',body:JSON.stringify({amount,payment_type:'balance',method:'mobile_money'})});
+    await apiFetch('/payments',{method:'POST',body:JSON.stringify({order_id:orderId,amount,payment_type:'balance',method:'mobile_money'})});
     showToast('Balance paid! ✅','success');
     loadOrders();
   }catch(e){showToast(e.message,'error');}

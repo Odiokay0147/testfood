@@ -225,6 +225,18 @@ def vendor_menu(vendor_id: int, db: Session = Depends(get_db)):
 # ─────────────────────────────────────────────
 # ORDERS  (protected — must be logged in)
 # ─────────────────────────────────────────────
+
+# IMPORTANT: /orders/my MUST be declared before /orders/{order_ref}
+# otherwise FastAPI matches "my" as an order_ref and returns 404
+@app.get("/orders/my", response_model=list[schemas.OrderOut])
+def my_orders(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Fetch all orders for the logged-in customer."""
+    return crud.get_orders_for_user(db, current_user.id)
+
+
 @app.post("/orders", response_model=schemas.OrderOut, status_code=201)
 def create_order(
     order: schemas.OrderCreate,
@@ -259,15 +271,6 @@ def create_order(
         )
 
     return new_order
-
-
-@app.get("/orders/my", response_model=list[schemas.OrderOut])
-def my_orders(
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    """Fetch all orders for the logged-in customer."""
-    return crud.get_orders_for_user(db, current_user.id)
 
 
 @app.get("/orders/{order_ref}", response_model=schemas.OrderOut)
