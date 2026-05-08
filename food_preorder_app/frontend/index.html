@@ -745,11 +745,13 @@ function doLogout(){
 async function loadVendors(){
   try{
     const vendors=await apiFetch('/vendors');
-    // FIX 4: modulo guard so arrays never go out-of-bounds for any number of vendors
     const colors=['#FF6B35','#2D6A4F','#6A4D2D','#2D4D6A'];
     const emojis=['👨‍🍳','🥜','🍱','🍜'];
+    // Store vendor data in a lookup map so names with apostrophes never break onclick attributes
+    window._vendorMap={};
+    vendors.forEach(v=>{ window._vendorMap[v.id]=v; });
     document.getElementById('vendorCards').innerHTML=vendors.map((v,i)=>`
-      <div class="vendor-card" onclick="openVendor(${v.id},'${esc(v.name)}','${esc(v.description||'')}')">
+      <div class="vendor-card" onclick="openVendorById(${v.id})">
         <div class="vendor-card-top">
           <div class="vendor-emoji" style="background:${colors[i%colors.length]}20">${emojis[i%emojis.length]}</div>
           <div class="vendor-info"><h3>${esc(v.name)}</h3><p>${esc(v.description||'Delicious meals available')}</p></div>
@@ -758,6 +760,13 @@ async function loadVendors(){
         <div class="vendor-cta">See Menu & Order →</div>
       </div>`).join('');
   }catch(e){showToast('No fit load vendors','error');}
+}
+
+// Safe vendor opener — looks up vendor by id, no apostrophe risk
+function openVendorById(id){
+  const v=window._vendorMap[id];
+  if(!v) return;
+  openVendor(v.id, v.name, v.description||'');
 }
 
 async function openVendor(id,name,desc){
