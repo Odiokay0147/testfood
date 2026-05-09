@@ -203,21 +203,31 @@ img{display:block;max-width:100%}
 /* ── Desktop (≥960px): sidebar layout ── */
 @media(min-width:960px){
   .bottom-nav{display:none!important}
-  .topbar{max-width:900px;margin:0 auto;padding:20px 32px 8px}
-  .hero{margin:8px auto 28px;max-width:860px;padding:36px 32px}
+  .screen{padding-bottom:40px!important;overflow-x:hidden}
+  .topbar{width:100%;max-width:960px;margin:0 auto;padding:20px 32px 8px}
+  .hero{margin:8px auto 28px;width:calc(100% - 64px);max-width:860px;padding:36px 32px}
   .hero h1{font-size:2.4rem}
-  .section-title{max-width:900px;margin:0 auto;padding-left:32px;padding-right:32px}
-  .vendor-cards{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr!important}
-  .how-section{max-width:900px;margin:28px auto 0;padding:24px 32px}
-  .menu-header{max-width:900px;margin:0 auto;padding:20px 32px 12px}
-  .category-tabs{max-width:900px;margin:0 auto;padding:0 32px 16px}
-  .meal-list{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr!important}
+  .section-title{width:100%;max-width:960px;margin:0 auto;padding-left:32px;padding-right:32px}
+  .vendor-cards{width:calc(100% - 64px);max-width:860px;margin:0 auto;padding:0;grid-template-columns:1fr 1fr!important}
+  .how-section{width:calc(100% - 64px);max-width:860px;margin:28px auto 0;padding:24px 32px}
+  .menu-header{width:100%;max-width:960px;margin:0 auto;padding:20px 32px 12px}
+  .category-tabs{width:100%;max-width:960px;margin:0 auto;padding:0 32px 16px}
+  /* KEY FIX: meal-list must be width-bound so grid columns don't overflow */
+  .meal-list{
+    width:calc(100% - 64px);
+    max-width:860px;
+    margin:0 auto;
+    padding:0;
+    grid-template-columns:1fr 1fr!important;
+    overflow:hidden;
+  }
+  .meal-card{min-width:0;overflow:hidden}
   .order-screen{max-width:700px;margin:0 auto;padding:0 32px}
   .confirm-screen{max-width:600px;margin:0 auto;padding:0 32px}
-  .orders-screen{max-width:860px;margin:0 auto;padding:0 32px}
+  .orders-screen{width:calc(100% - 64px);max-width:860px;margin:0 auto;padding:0}
   .orders-grid{grid-template-columns:1fr 1fr 1fr}
   .auth-screen{max-width:440px;margin:0 auto}
-  /* Cart bar: properly centered in content area (viewport minus sidebar) */
+  /* Cart bar: centered in content area excluding sidebar */
   .cart-bar{
     bottom:24px;
     left:calc(var(--sidebar) + (100vw - var(--sidebar) - 500px) / 2);
@@ -225,20 +235,26 @@ img{display:block;max-width:100%}
     width:500px;
     max-width:calc(100vw - var(--sidebar) - 64px);
   }
-  #discountBanner{margin:0 32px 16px!important}
-  /* schedule chips row on desktop */
+  /* Discount banner matches meal-list width */
+  #discountBanner{
+    width:calc(100% - 64px)!important;
+    max-width:860px!important;
+    margin:0 auto 16px!important;
+    box-sizing:border-box;
+  }
   .schedule-chips{gap:12px}
   .schedule-chip{padding:14px 10px}
 }
 
 /* ── Wide desktop (≥1280px): 3-col meals ── */
 @media(min-width:1280px){
-  .meal-list{grid-template-columns:1fr 1fr 1fr!important}
-  .hero{max-width:960px}
-  .vendor-cards{max-width:960px}
-  .how-section{max-width:960px}
-  .category-tabs{max-width:960px}
-  .orders-screen{max-width:960px}
+  .meal-list{grid-template-columns:1fr 1fr 1fr!important;max-width:1100px}
+  .hero{max-width:1100px}
+  .vendor-cards{max-width:1100px}
+  .how-section{max-width:1100px}
+  .category-tabs{max-width:1100px}
+  .orders-screen{max-width:1100px}
+  #discountBanner{max-width:1100px!important}
 }
 
 /* ── Touch device improvements ── */
