@@ -18,7 +18,7 @@
   --shadow-md:0 8px 32px rgba(0,0,0,.11);
   --bg:#F7F4F0;--surface:#fff;--surface2:#F0EDE8;
   --text:#1A1208;--text2:#6B6358;--border:rgba(0,0,0,.08);--card-bg:#fff;
-  --nav-h:64px;
+  --nav-h:60px;
   --sidebar:260px;
 }
 @media(prefers-color-scheme:dark){
@@ -105,38 +105,164 @@ img{display:block;max-width:100%}
    RESPONSIVE BREAKPOINTS
 ═══════════════════════════════════════ */
 
-/* Tablet (≥600px): wider cards, 2-col vendor grid */
+/* ── Small mobile (≤360px) — very tight screens ── */
+@media(max-width:360px){
+  .hero h1{font-size:1.4rem}
+  .hero{padding:22px 18px}
+  .schedule-chips{flex-direction:column}
+  .schedule-chip{padding:10px 12px;display:flex;align-items:center;gap:10px;text-align:left}
+  .chip-icon{font-size:1.1rem;margin-bottom:0;flex-shrink:0}
+  .chip-label{font-size:.8rem}
+  .auth-card{padding:20px 16px}
+  .meal-card{gap:10px;padding:12px}
+  .meal-emoji{width:44px;height:44px;font-size:1.4rem}
+  .qty-btn{width:26px;height:26px;font-size:.95rem}
+  .form-row{grid-template-columns:1fr}
+  .confirm-ref-value{font-size:1rem;letter-spacing:.5px}
+  .payment-option{padding:11px 12px;gap:8px}
+  .payment-option-icon{font-size:1.1rem}
+}
+
+/* ── Base mobile fixes (all phones) ── */
+@media(max-width:599px){
+  /* Cart bar sits above bottom nav with safe spacing */
+  .cart-bar{
+    bottom:calc(var(--nav-h) + 8px);
+    width:calc(100% - 32px);
+    left:16px;
+    transform:none;
+    max-width:none;
+  }
+  /* Auth card — no heavy shadow on small screens, use full width */
+  .auth-card{border-radius:16px;padding:24px 20px}
+  .auth-wrapper{padding:16px;align-items:flex-start;padding-top:40px}
+  /* Order screen — date and time stack vertically on small phones */
+  .form-row{grid-template-columns:1fr}
+  /* Meal card — constrain description overflow */
+  .meal-info p{max-width:160px}
+  /* Topbar — tighten on small screens */
+  .topbar{padding:12px 16px 6px}
+  /* Section titles */
+  .section-title{padding:0 16px 12px}
+  /* Vendor cards */
+  .vendor-cards{padding:0 16px}
+  .vendor-card{padding:16px}
+  /* Menu */
+  .category-tabs{padding:0 16px 14px}
+  .meal-list{padding:0 16px;gap:10px}
+  /* Order screen inner padding */
+  .order-screen{padding:0 16px}
+  /* Confirm screen inner padding */
+  .confirm-screen{padding:0 16px}
+  /* Orders screen inner padding */
+  .orders-screen{padding:0 16px}
+  /* Hero */
+  .hero{margin:6px 16px 20px;padding:24px 18px}
+  /* How section */
+  .how-section{margin:20px 16px 0;padding:18px 16px}
+  /* Discount banner */
+  #discountBanner{margin:0 16px 14px!important}
+  /* Bottom nav text size */
+  .nav-btn{font-size:.6rem;padding:4px 12px}
+  /* Reduce confirm icon on tiny screens */
+  .confirm-success{padding:24px 16px 18px}
+  /* Payment badge wraps on tiny screens — prevent overflow */
+  .payment-badge{white-space:nowrap;flex-shrink:0}
+  /* Prevent order ref overflow */
+  .confirm-ref-value{word-break:break-all}
+  /* Menu header tighten */
+  .menu-header{padding:12px 16px 10px}
+}
+
+/* ── Tablet (≥600px): 2-col grids ── */
 @media(min-width:600px){
   body{background:var(--bg)}
   .vendor-cards{grid-template-columns:1fr 1fr!important}
   .meal-list{grid-template-columns:1fr 1fr!important}
   .hero h1{font-size:2.2rem!important}
-  .auth-screen{max-width:420px;margin:0 auto}
+  .auth-screen{max-width:460px;margin:0 auto}
+  .auth-wrapper{align-items:center;padding-top:24px}
+  /* form-row stays 2-col from tablet up */
+  .form-row{grid-template-columns:1fr 1fr}
+  /* Cart bar: centered, above bottom nav */
+  .cart-bar{
+    bottom:calc(var(--nav-h) + 10px);
+    left:50%;
+    transform:translateX(-50%);
+    width:calc(100% - 48px);
+    max-width:520px;
+  }
+  /* Orders 2-col */
+  .orders-grid{grid-template-columns:1fr 1fr}
+  .section-title{padding:0 20px 14px}
+  .vendor-cards{padding:0 20px}
+  .meal-list{padding:0 20px}
+  .hero{margin:8px 20px 24px}
 }
 
-/* Desktop (≥960px): show sidebar, restrict content width */
+/* ── Desktop (≥960px): sidebar layout ── */
 @media(min-width:960px){
-  .sidebar{display:flex}
   .main-content{margin-left:var(--sidebar)}
   .bottom-nav{display:none!important}
   .screen{padding-bottom:40px!important}
   .topbar{max-width:900px;margin:0 auto;padding:20px 32px 8px}
-  .hero{margin:8px 32px 28px;max-width:900px;margin-left:auto;margin-right:auto}
+  .hero{margin:8px auto 28px;max-width:860px;padding:36px 32px}
+  .hero h1{font-size:2.4rem}
   .section-title{max-width:900px;margin:0 auto;padding-left:32px;padding-right:32px}
   .vendor-cards{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr!important}
-  .how-section{max-width:900px;margin:28px auto 0;margin-left:auto;margin-right:auto;padding:24px 32px}
+  .how-section{max-width:900px;margin:28px auto 0;padding:24px 32px}
   .menu-header{max-width:900px;margin:0 auto;padding:20px 32px 12px}
   .category-tabs{max-width:900px;margin:0 auto;padding:0 32px 16px}
-  .meal-list{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr 1fr!important}
+  .meal-list{max-width:900px;margin:0 auto;padding:0 32px;grid-template-columns:1fr 1fr!important}
   .order-screen{max-width:700px;margin:0 auto;padding:0 32px}
   .confirm-screen{max-width:600px;margin:0 auto;padding:0 32px}
-  .orders-screen{max-width:800px;margin:0 auto;padding:0 32px}
-  .cart-bar{bottom:20px;left:calc(var(--sidebar) + (100vw - var(--sidebar) - (min(500px, 100vw - var(--sidebar) - 40px))) / 2);transform:none;width:calc(min(500px, 100vw - var(--sidebar) - 40px))}
+  .orders-screen{max-width:860px;margin:0 auto;padding:0 32px}
+  .orders-grid{grid-template-columns:1fr 1fr 1fr}
   .auth-screen{max-width:440px;margin:0 auto}
+  /* Cart bar: properly centered in content area (viewport minus sidebar) */
+  .cart-bar{
+    bottom:24px;
+    left:calc(var(--sidebar) + (100vw - var(--sidebar) - 500px) / 2);
+    transform:none;
+    width:500px;
+    max-width:calc(100vw - var(--sidebar) - 64px);
+  }
+  #discountBanner{margin:0 32px 16px!important}
+  /* schedule chips row on desktop */
+  .schedule-chips{gap:12px}
+  .schedule-chip{padding:14px 10px}
 }
 
+/* ── Wide desktop (≥1280px): 3-col meals ── */
 @media(min-width:1280px){
   .meal-list{grid-template-columns:1fr 1fr 1fr!important}
+  .hero{max-width:960px}
+  .vendor-cards{max-width:960px}
+  .how-section{max-width:960px}
+  .category-tabs{max-width:960px}
+  .orders-screen{max-width:960px}
+}
+
+/* ── Touch device improvements ── */
+@media(hover:none){
+  .vendor-card:hover{transform:none;box-shadow:var(--shadow)}
+  .meal-card:hover{box-shadow:var(--shadow)}
+  .btn-primary:hover{opacity:1}
+  /* Larger tap targets on touch */
+  .qty-btn{width:34px;height:34px}
+  .cat-tab{padding:8px 18px}
+  .nav-btn{padding:6px 20px}
+}
+
+/* ── Landscape mobile: shrink hero, compact layout ── */
+@media(max-height:500px) and (orientation:landscape){
+  .hero{padding:16px 18px;margin-bottom:16px}
+  .hero h1{font-size:1.3rem}
+  .hero p{display:none}
+  .hero-pills{display:none}
+  .auth-wrapper{align-items:flex-start;padding-top:16px}
+  .confirm-success{padding:16px 16px 12px}
+  .confirm-icon{width:52px;height:52px;font-size:1.5rem}
 }
 
 /* Auth-state visibility — controlled by JS class, not inline style */
@@ -162,7 +288,8 @@ body.logged-in #bottomNav{display:flex}
   background:var(--surface);
   border-top:1px solid var(--border);
   display:flex;justify-content:space-around;align-items:center;
-  padding:10px 0 max(10px,env(safe-area-inset-bottom));
+  min-height:var(--nav-h);
+  padding:8px 0 max(8px,env(safe-area-inset-bottom));
   z-index:100;
 }
 .nav-btn{
@@ -269,9 +396,9 @@ body.logged-in #bottomNav{display:flex}
 }
 .meal-card:hover{box-shadow:var(--shadow-md)}
 .meal-emoji{width:56px;height:56px;border-radius:14px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;flex-shrink:0}
-.meal-info{flex:1;min-width:0}
-.meal-info h4{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:2px}
-.meal-info p{font-size:.75rem;color:var(--text2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meal-info{flex:1;min-width:0;overflow:hidden}
+.meal-info h4{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meal-info p{font-size:.75rem;color:var(--text2);line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .meal-price{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem;color:var(--brand);margin-top:4px}
 .meal-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .qty-btn{width:30px;height:30px;border-radius:10px;background:var(--surface2);color:var(--text);font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;transition:background .15s;cursor:pointer}
