@@ -202,9 +202,7 @@ img{display:block;max-width:100%}
 
 /* ── Desktop (≥960px): sidebar layout ── */
 @media(min-width:960px){
-  .main-content{margin-left:var(--sidebar)}
   .bottom-nav{display:none!important}
-  .screen{padding-bottom:40px!important}
   .topbar{max-width:900px;margin:0 auto;padding:20px 32px 8px}
   .hero{margin:8px auto 28px;max-width:860px;padding:36px 32px}
   .hero h1{font-size:2.4rem}
@@ -269,8 +267,13 @@ img{display:block;max-width:100%}
 #bottomNav{display:none}
 body.logged-in #bottomNav{display:flex}
 @media(min-width:960px){
+  /* Sidebar only visible when logged in */
   #sidebar{display:none}
   body.logged-in #sidebar{display:flex}
+  /* Main content offset only when sidebar is showing */
+  body.logged-in .main-content{margin-left:var(--sidebar)}
+  /* Auth screens: always full-width centered, never offset */
+  #screen-login,#screen-signup{margin-left:0!important}
 }
 
 /* ═══════════════════════════════════════
