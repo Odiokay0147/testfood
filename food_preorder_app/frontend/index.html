@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#FF6B35"/>
 <title>Prep & Go — Order Food Ahead</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>"/>
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet"/>
@@ -1247,7 +1246,9 @@ async function launchPaystack(){
     showLoading(false);
     showToast(e.message, 'error');
   }
+}
 
+async function placeOrder(){
   const date=document.getElementById('deliveryDate').value;
   const time=document.getElementById('deliveryTime').value;
   if(!date) return showToast('Select a delivery date','error');
