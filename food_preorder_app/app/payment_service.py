@@ -9,11 +9,21 @@ import hashlib
 import requests
 from dotenv import load_dotenv
 
-load_dotenv()
+# Explicitly load .env from project root (two levels up from this file)
+_here = os.path.dirname(os.path.abspath(__file__))
+_root = os.path.dirname(_here)
+load_dotenv(os.path.join(_root, ".env"))
 
 PAYSTACK_SECRET_KEY  = os.getenv("PAYSTACK_SECRET_KEY", "")
 PAYSTACK_PUBLIC_KEY  = os.getenv("PAYSTACK_PUBLIC_KEY", "")
 PAYSTACK_BASE_URL    = "https://api.paystack.co"
+
+def _check_keys():
+    if not PAYSTACK_SECRET_KEY or PAYSTACK_SECRET_KEY.startswith("sk_test_xxx"):
+        raise ValueError(
+            "❌ PAYSTACK_SECRET_KEY not set. "
+            "Add your real test key to .env — get it from dashboard.paystack.com"
+        )
 
 
 def _headers() -> dict:
@@ -40,6 +50,7 @@ def initialize_transaction(
 
     Amount is in Naira — we convert to kobo internally.
     """
+    _check_keys()
     amount_kobo = int(round(amount_naira * 100))
 
     payload = {
