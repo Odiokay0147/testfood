@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="theme-color" content="#FF6B35"/>
 <title>Prep & Go — Order Food Ahead</title>
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap" rel="stylesheet"/>
 <style>
@@ -759,6 +760,40 @@ body.logged-in #bottomNav{display:flex}
   </div><!-- /main-content -->
 </div><!-- /shell -->
 
+<!-- PAYMENT MODAL -->
+<div id="paymentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:24px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--brand-light);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.6rem">💳</div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px" id="payModalTitle">Complete Payment</h3>
+      <p style="font-size:.85rem;color:var(--text2)" id="payModalSub">Secure payment via Paystack</p>
+    </div>
+    <div style="background:var(--surface2);border-radius:14px;padding:14px 16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:6px">
+        <span style="color:var(--text2)">Order</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--brand)" id="payModalRef">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.85rem">
+        <span style="color:var(--text2)" id="payModalTypeLabel">Deposit</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem" id="payModalAmount">₦0.00</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">💳</span> Card payment
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">🏦</span> Bank transfer
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">📱</span> USSD (*737#, *919# etc.)
+      </div>
+    </div>
+    <button class="btn-primary" id="payNowBtn" onclick="launchPaystack()" style="margin-top:0">Pay Now with Paystack</button>
+    <button onclick="closePaymentModal()" style="width:100%;padding:12px;border-radius:var(--r);background:none;color:var(--text2);font-size:.85rem;margin-top:8px;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
 <!-- BOTTOM NAV (mobile) -->
 <nav class="bottom-nav" id="bottomNav" style="display:none">
   <button class="nav-btn active" id="bn-home" onclick="mobileNav('screen-home','bn-home')">
@@ -826,7 +861,8 @@ function showMainApp(){
     document.getElementById('sidebarEmail').textContent=currentUser.email||'';
   }
   showScreen('screen-home');
-  loadVendors(); // FIX 14: only called once here; sidebar Home btn no longer calls loadVendors separately
+  loadVendors();
+  loadPaystackKey(); // load Paystack public key in background
 }
 
 async function apiFetch(path,opts={}){
@@ -1107,7 +1143,110 @@ function updateDepositInfo(){
     `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
 
-async function placeOrder(){
+// ── PAYSTACK PAYMENT STATE ────────────────────
+let paystackPublicKey = '';
+let pendingPayment = null;  // { order_id, order_ref, payment_type, amount }
+
+async function loadPaystackKey(){
+  try{
+    const d = await apiFetch('/payments/config');
+    paystackPublicKey = d.public_key || '';
+  }catch(e){ console.warn('Could not load Paystack config:', e.message); }
+}
+
+function openPaymentModal(orderId, orderRef, paymentType, amount){
+  pendingPayment = { order_id: orderId, order_ref: orderRef, payment_type: paymentType, amount };
+  document.getElementById('payModalRef').textContent = orderRef;
+  document.getElementById('payModalAmount').textContent = fmt(amount);
+  const isDeposit = paymentType === 'deposit';
+  const isFull    = paymentType === 'full';
+  document.getElementById('payModalTitle').textContent =
+    isFull ? 'Pay in Full' : isDeposit ? 'Pay Deposit' : 'Pay Balance';
+  document.getElementById('payModalTypeLabel').textContent =
+    isFull ? 'Total' : isDeposit ? 'Deposit' : 'Balance due';
+  document.getElementById('payModalSub').textContent =
+    isDeposit
+      ? 'Pay deposit to confirm your order'
+      : isFull
+        ? 'Pay in full to confirm your order'
+        : 'Complete balance before dispatch';
+  document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal(){
+  document.getElementById('paymentModal').style.display = 'none';
+  pendingPayment = null;
+}
+
+async function launchPaystack(){
+  if(!pendingPayment) return;
+  if(!paystackPublicKey){
+    showToast('Payment not configured. Contact support.', 'error');
+    return;
+  }
+  showLoading(true);
+  try{
+    // Step 1: initialize transaction on our backend
+    const init = await apiFetch('/payments/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        order_id: pendingPayment.order_id,
+        payment_type: pendingPayment.payment_type,
+      })
+    });
+
+    showLoading(false);
+    closePaymentModal();
+
+    // Step 2: open Paystack inline popup
+    const handler = PaystackPop.setup({
+      key: paystackPublicKey,
+      email: currentUser.email,
+      amount: Math.round(pendingPayment.amount * 100),  // kobo
+      currency: 'NGN',
+      ref: init.reference,
+      channels: ['card', 'bank_transfer', 'ussd'],
+      metadata: {
+        order_ref: pendingPayment.order_ref,
+        payment_type: pendingPayment.payment_type,
+        customer_name: currentUser.name,
+      },
+      onSuccess: async (transaction) => {
+        // Step 3: verify on our backend
+        showLoading(true);
+        try{
+          const result = await apiFetch('/payments/verify', {
+            method: 'POST',
+            body: JSON.stringify({
+              reference:    transaction.reference,
+              order_id:     pendingPayment.order_id,
+              payment_type: pendingPayment.payment_type,
+            })
+          });
+          showToast('Payment successful! 🎉', 'success');
+          // Refresh orders or confirmation
+          if(document.getElementById('screen-orders').classList.contains('active')){
+            loadOrders();
+          } else {
+            navTo('screen-orders', 'sb-orders');
+            loadOrders();
+          }
+        }catch(e){ showToast(e.message, 'error'); }
+        showLoading(false);
+        pendingPayment = null;
+      },
+      onCancel: () => {
+        showToast('Payment cancelled', '');
+        pendingPayment = null;
+      },
+    });
+    handler.openIframe();
+
+  }catch(e){
+    showLoading(false);
+    showToast(e.message, 'error');
+  }
+}
   const date=document.getElementById('deliveryDate').value;
   const time=document.getElementById('deliveryTime').value;
   if(!date) return showToast('Select a delivery date','error');
@@ -1143,9 +1282,19 @@ function showConfirmation(order){
     <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
     ${discountRow}
     <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
-    <div class="confirm-row highlight"><span>Deposit to Pay</span><span>${fmt(order.deposit_amount)}</span></div>
-    <div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`;
+    <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
+    ${order.payment_type!=='full'?`<div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`:''}`;
   cart={}; updateCartBar(); showScreen('screen-confirm');
+
+  // Auto-open payment modal after a short delay
+  setTimeout(()=>{
+    openPaymentModal(
+      order.id,
+      order.order_ref,
+      order.payment_type,
+      order.deposit_amount,
+    );
+  }, 800);
 }
 
 async function loadOrders(){
@@ -1182,21 +1331,15 @@ async function loadOrders(){
         </div>
         ${needsBal?`<div class="balance-alert">
           <div class="balance-alert-text"><strong>Balance: ${fmt(balanceDue)}</strong>Pay before dispatch</div>
-          <button class="pay-balance-btn" onclick="payBalance(${o.id},${balanceDue})">Pay Now</button>
+          <button class="pay-balance-btn" onclick="payBalance(${o.id},'${o.order_ref}',${balanceDue})">Pay Now</button>
         </div>`:''}
       </div>`;
     }).join('');
   }catch(e){c.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
 }
 
-async function payBalance(orderId,amount){
-  showLoading(true);
-  try{
-    await apiFetch('/payments',{method:'POST',body:JSON.stringify({order_id:orderId,amount,payment_type:'balance',method:'mobile_money'})});
-    showToast('Balance paid! ✅','success');
-    loadOrders();
-  }catch(e){showToast(e.message,'error');}
-  showLoading(false);
+async function payBalance(orderId, orderRef, amount){
+  openPaymentModal(orderId, orderRef, 'balance', amount);
 }
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

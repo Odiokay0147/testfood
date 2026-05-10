@@ -1,7 +1,7 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from typing import Optional
@@ -14,6 +14,10 @@ import app.crud as crud
 from app.auth import create_access_token, SECRET_KEY, ALGORITHM
 from app.notifier import send_order_confirmation, send_deposit_receipt, send_dispatch_notification
 from app.reminder_job import start_scheduler, stop_scheduler, run_balance_reminders
+from app.payment_service import (
+    initialize_transaction, verify_transaction,
+    verify_webhook_signature, get_public_key,
+)
 
 # ─────────────────────────────────────────────
 # SETUP
@@ -356,36 +360,150 @@ def vendor_orders(
 
 
 # ─────────────────────────────────────────────
-# PAYMENTS  (protected)
 # ─────────────────────────────────────────────
-@app.post("/payments", status_code=201)
-def make_payment(
-    payment: schemas.PaymentCreate,
+# PAYMENTS — PAYSTACK INTEGRATION
+# ─────────────────────────────────────────────
+
+@app.get("/payments/config")
+def payment_config():
+    """Return Paystack public key for the frontend."""
+    return {"public_key": get_public_key()}
+
+
+@app.post("/payments/initialize")
+def initialize_payment(
+    body: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    Record a payment. System validates:
-    - Correct amount for deposit or balance
-    - Deposit must come before balance
-    - No double payments
-    - Only the order owner can pay
-    """
-    result = crud.record_payment(db, payment, current_user.id)
-    order = db.query(models.Order).filter(models.Order.id == payment.order_id).first()
+    Step 1: Initialize a Paystack transaction.
+    Frontend calls this to get an access_code for the Paystack popup.
 
-    # Send WhatsApp receipt if customer has a phone number
+    Body: { order_id, payment_type }
+    payment_type: "deposit" | "balance" | "full"
+    """
+    order_id     = body.get("order_id")
+    payment_type = body.get("payment_type", "deposit")
+
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    if order.user_id != current_user.id:
+        raise HTTPException(403, "Not your order")
+
+    # Determine amount
+    if payment_type == "deposit":
+        if order.deposit_paid:
+            raise HTTPException(400, "Deposit already paid")
+        amount = order.deposit_amount
+    elif payment_type == "balance":
+        if not order.deposit_paid:
+            raise HTTPException(400, "Pay deposit first")
+        if order.balance_paid:
+            raise HTTPException(400, "Balance already paid")
+        amount = order.balance_due
+    elif payment_type == "full":
+        if order.deposit_paid or order.balance_paid:
+            raise HTTPException(400, "Order already paid")
+        amount = order.total_price
+    else:
+        raise HTTPException(400, "Invalid payment_type")
+
+    if not current_user.email:
+        raise HTTPException(400, "Customer email required for payment")
+
+    try:
+        tx = initialize_transaction(
+            email=current_user.email,
+            amount_naira=amount,
+            order_ref=order.order_ref,
+            payment_type=payment_type,
+            customer_name=current_user.name,
+        )
+    except Exception as e:
+        raise HTTPException(502, f"Paystack error: {str(e)}")
+
+    return {
+        "access_code":       tx["access_code"],
+        "authorization_url": tx["authorization_url"],
+        "reference":         tx["reference"],
+        "amount":            amount,
+        "order_ref":         order.order_ref,
+    }
+
+
+@app.post("/payments/verify")
+def verify_payment(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Step 2: Verify a completed Paystack transaction.
+    Frontend calls this after the Paystack popup closes with success.
+
+    Body: { reference, order_id, payment_type }
+    """
+    reference    = body.get("reference")
+    order_id     = body.get("order_id")
+    payment_type = body.get("payment_type", "deposit")
+
+    if not reference:
+        raise HTTPException(400, "Transaction reference required")
+
+    # Verify with Paystack
+    try:
+        tx = verify_transaction(reference)
+    except Exception as e:
+        raise HTTPException(502, f"Paystack verification error: {str(e)}")
+
+    if tx["status"] != "success":
+        raise HTTPException(402, f"Payment not successful: {tx['gateway_response']}")
+
+    # Get order
+    order = db.query(models.Order).filter(models.Order.id == order_id).first()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    if order.user_id != current_user.id:
+        raise HTTPException(403, "Not your order")
+
+    # Validate amount matches (allow ±1 kobo rounding tolerance)
+    if payment_type == "deposit":
+        expected = order.deposit_amount
+    elif payment_type == "balance":
+        expected = order.balance_due
+    else:
+        expected = order.total_price
+
+    if abs(tx["amount_naira"] - expected) > 0.5:
+        raise HTTPException(400,
+            f"Amount mismatch. Expected ₦{expected:.2f}, got ₦{tx['amount_naira']:.2f}")
+
+    # Record payment in our DB
+    from app.schemas import PaymentCreate
+    payment_data = PaymentCreate(
+        order_id=order_id,
+        amount=tx["amount_naira"],
+        payment_type=payment_type,
+        method=tx["channel"],        # card | bank_transfer | ussd
+        reference=reference,
+    )
+    result = crud.record_payment(db, payment_data, current_user.id)
+    db.refresh(order)
+
+    # Send WhatsApp notifications
     if current_user.phone:
-        if payment.payment_type == "deposit":
+        if payment_type == "deposit":
             send_deposit_receipt(
                 customer_name=current_user.name,
                 phone=current_user.phone,
                 order_ref=order.order_ref,
-                amount=payment.amount,
+                amount=tx["amount_naira"],
                 balance_due=order.balance_due,
                 vendor_name=order.vendor.name,
             )
-        elif payment.payment_type == "balance" and order.status == "confirmed":
+        elif payment_type in ("balance", "full"):
             send_dispatch_notification(
                 customer_name=current_user.name,
                 phone=current_user.phone,
@@ -395,11 +513,109 @@ def make_payment(
             )
 
     return {
-        "payment": result,
-        "order_ref": order.order_ref,
-        "order_status": order.status,
+        "message":        "Payment verified and recorded ✅",
+        "order_ref":      order.order_ref,
+        "order_status":   order.status,
+        "amount_paid":    tx["amount_naira"],
+        "channel":        tx["channel"],
         "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
-        "message": "Payment recorded successfully ✅",
+        "deposit_paid":   order.deposit_paid,
+        "balance_paid":   order.balance_paid,
+    }
+
+
+@app.post("/payments/webhook")
+async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
+    """
+    Paystack webhook endpoint.
+    Set this URL in your Paystack dashboard:
+    https://yourdomain.com/payments/webhook
+
+    Handles: charge.success events as a fallback
+    if the customer closes the popup before verification.
+    """
+    signature = request.headers.get("x-paystack-signature", "")
+    payload_bytes = await request.body()
+
+    # Verify the webhook came from Paystack
+    if not verify_webhook_signature(payload_bytes, signature):
+        raise HTTPException(401, "Invalid webhook signature")
+
+    import json
+    event = json.loads(payload_bytes)
+    event_type = event.get("event")
+
+    if event_type != "charge.success":
+        return {"status": "ignored", "event": event_type}
+
+    data     = event["data"]
+    ref      = data["reference"]
+    metadata = data.get("metadata", {})
+    order_ref    = metadata.get("order_ref")
+    payment_type = metadata.get("payment_type", "deposit")
+
+    if not order_ref:
+        return {"status": "no_order_ref"}
+
+    # Find the order
+    order = db.query(models.Order).filter(models.Order.order_ref == order_ref).first()
+    if not order:
+        return {"status": "order_not_found"}
+
+    # Skip if already recorded (idempotent)
+    existing = db.query(models.Payment).filter(
+        models.Payment.reference == ref
+    ).first()
+    if existing:
+        return {"status": "already_recorded"}
+
+    # Record payment
+    amount_naira = data["amount"] / 100
+    from app.schemas import PaymentCreate
+    payment_data = PaymentCreate(
+        order_id=order.id,
+        amount=amount_naira,
+        payment_type=payment_type,
+        method=data.get("channel", "card"),
+        reference=ref,
+    )
+    crud.record_payment(db, payment_data, order.user_id)
+    db.refresh(order)
+
+    # Send WhatsApp receipt
+    customer = order.user
+    if customer and customer.phone:
+        if payment_type == "deposit":
+            send_deposit_receipt(
+                customer_name=customer.name,
+                phone=customer.phone,
+                order_ref=order_ref,
+                amount=amount_naira,
+                balance_due=order.balance_due,
+                vendor_name=order.vendor.name,
+            )
+
+    return {"status": "success", "order_ref": order_ref}
+
+
+@app.post("/payments", status_code=201)
+def make_payment_manual(
+    payment: schemas.PaymentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Manual payment recording (cash / offline payments).
+    For online payments use POST /payments/initialize then POST /payments/verify.
+    """
+    result = crud.record_payment(db, payment, current_user.id)
+    order  = db.query(models.Order).filter(models.Order.id == payment.order_id).first()
+    return {
+        "payment":          result,
+        "order_ref":        order.order_ref,
+        "order_status":     order.status,
+        "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
+        "message":          "Payment recorded ✅",
     }
 
 
