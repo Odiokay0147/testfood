@@ -1198,54 +1198,95 @@ async function launchPaystack(){
     showLoading(false);
     closePaymentModal();
 
-    // Step 2: open Paystack inline popup
-    const handler = PaystackPop.setup({
-      key: paystackPublicKey,
-      email: currentUser.email,
-      amount: Math.round(pendingPayment.amount * 100),  // kobo
-      currency: 'NGN',
-      ref: init.reference,
-      channels: ['card', 'bank_transfer', 'ussd'],
-      metadata: {
-        order_ref: pendingPayment.order_ref,
+    // Step 2: Try inline popup first, fall back to redirect if blocked
+    if(typeof PaystackPop !== 'undefined'){
+      // Inline popup (works in production)
+      const handler = PaystackPop.setup({
+        key: paystackPublicKey,
+        email: currentUser.email,
+        amount: Math.round(pendingPayment.amount * 100),
+        currency: 'NGN',
+        ref: init.reference,
+        channels: ['card', 'bank_transfer', 'ussd'],
+        metadata: {
+          order_ref: pendingPayment.order_ref,
+          payment_type: pendingPayment.payment_type,
+          customer_name: currentUser.name,
+        },
+        onSuccess: async (transaction) => {
+          await _verifyAndRecord(transaction.reference);
+        },
+        onCancel: () => {
+          showToast('Payment cancelled', '');
+          pendingPayment = null;
+        },
+      });
+      handler.openIframe();
+    } else {
+      // Fallback: redirect to Paystack hosted page (works in Codespaces/restricted browsers)
+      showToast('Opening payment page...', 'success');
+      // Store pending payment info so we can verify on return
+      localStorage.setItem('pg_pending_payment', JSON.stringify({
+        reference: init.reference,
+        order_id: pendingPayment.order_id,
         payment_type: pendingPayment.payment_type,
-        customer_name: currentUser.name,
-      },
-      onSuccess: async (transaction) => {
-        // Step 3: verify on our backend
-        showLoading(true);
-        try{
-          const result = await apiFetch('/payments/verify', {
-            method: 'POST',
-            body: JSON.stringify({
-              reference:    transaction.reference,
-              order_id:     pendingPayment.order_id,
-              payment_type: pendingPayment.payment_type,
-            })
-          });
-          showToast('Payment successful! 🎉', 'success');
-          // Refresh orders or confirmation
-          if(document.getElementById('screen-orders').classList.contains('active')){
-            loadOrders();
-          } else {
-            navTo('screen-orders', 'sb-orders');
-            loadOrders();
-          }
-        }catch(e){ showToast(e.message, 'error'); }
-        showLoading(false);
-        pendingPayment = null;
-      },
-      onCancel: () => {
-        showToast('Payment cancelled', '');
-        pendingPayment = null;
-      },
-    });
-    handler.openIframe();
+      }));
+      window.open(init.authorization_url, '_blank');
+
+      // Show a manual verify button in case redirect doesn't auto-verify
+      setTimeout(()=>{
+        showVerifyButton(init.reference);
+      }, 2000);
+    }
 
   }catch(e){
     showLoading(false);
     showToast(e.message, 'error');
   }
+}
+
+function showVerifyButton(reference){
+  const existing = document.getElementById('verifyPaymentBtn');
+  if(existing) existing.remove();
+
+  const btn = document.createElement('button');
+  btn.id = 'verifyPaymentBtn';
+  btn.className = 'btn-primary green';
+  btn.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;z-index:500';
+  btn.textContent = '✅ I have paid — Verify Payment';
+  btn.onclick = async () => {
+    const stored = JSON.parse(localStorage.getItem('pg_pending_payment') || 'null');
+    if(!stored) return showToast('No pending payment found', 'error');
+    btn.remove();
+    await _verifyAndRecord(stored.reference);
+    localStorage.removeItem('pg_pending_payment');
+  };
+  document.body.appendChild(btn);
+}
+
+async function _verifyAndRecord(reference){
+  const stored = JSON.parse(localStorage.getItem('pg_pending_payment') || 'null');
+  const orderId = pendingPayment?.order_id || stored?.order_id;
+  const payType = pendingPayment?.payment_type || stored?.payment_type;
+
+  showLoading(true);
+  try{
+    const result = await apiFetch('/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        reference,
+        order_id: orderId,
+        payment_type: payType,
+      })
+    });
+    localStorage.removeItem('pg_pending_payment');
+    document.getElementById('verifyPaymentBtn')?.remove();
+    showToast('Payment successful! 🎉', 'success');
+    navTo('screen-orders', 'sb-orders');
+    loadOrders();
+  }catch(e){ showToast(e.message, 'error'); }
+  showLoading(false);
+  pendingPayment = null;
 }
 
 async function placeOrder(){
