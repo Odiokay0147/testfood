@@ -1155,7 +1155,13 @@ async function loadPaystackKey(){
 }
 
 function openPaymentModal(orderId, orderRef, paymentType, amount){
-  pendingPayment = { order_id: orderId, order_ref: orderRef, payment_type: paymentType, amount };
+  // Store on the button itself so it survives any state resets
+  const btn = document.getElementById('payNowBtn');
+  btn.dataset.orderId     = orderId;
+  btn.dataset.orderRef    = orderRef;
+  btn.dataset.paymentType = paymentType;
+  btn.dataset.amount      = amount;
+
   document.getElementById('payModalRef').textContent = orderRef;
   document.getElementById('payModalAmount').textContent = fmt(amount);
   const isDeposit = paymentType === 'deposit';
@@ -1165,11 +1171,9 @@ function openPaymentModal(orderId, orderRef, paymentType, amount){
   document.getElementById('payModalTypeLabel').textContent =
     isFull ? 'Total' : isDeposit ? 'Deposit' : 'Balance due';
   document.getElementById('payModalSub').textContent =
-    isDeposit
-      ? 'Pay deposit to confirm your order'
-      : isFull
-        ? 'Pay in full to confirm your order'
-        : 'Complete balance before dispatch';
+    isDeposit ? 'Pay deposit to confirm your order'
+    : isFull  ? 'Pay in full to confirm your order'
+    : 'Complete balance before dispatch';
   document.getElementById('paymentModal').style.display = 'flex';
 }
 
@@ -1179,11 +1183,24 @@ function closePaymentModal(){
 }
 
 async function launchPaystack(){
-  if(!pendingPayment) return;
+  // Read data from button dataset — survives screen transitions and state resets
+  const btn = document.getElementById('payNowBtn');
+  const orderId     = btn.dataset.orderId;
+  const orderRef    = btn.dataset.orderRef;
+  const paymentType = btn.dataset.paymentType;
+  const amount      = parseFloat(btn.dataset.amount);
+
+  if(!orderId || !amount){
+    showToast('Payment info missing. Please try again.', 'error');
+    return;
+  }
   if(!paystackPublicKey){
     showToast('Payment not configured. Contact support.', 'error');
     return;
   }
+
+  // Set pendingPayment from dataset for use in callbacks
+  pendingPayment = { order_id: parseInt(orderId), order_ref: orderRef, payment_type: paymentType, amount };
   showLoading(true);
   try{
     // Step 1: initialize transaction on our backend
