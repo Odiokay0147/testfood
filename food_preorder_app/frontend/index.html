@@ -744,6 +744,8 @@ body.logged-in #bottomNav{display:flex}
           <span style="font-size:1.2rem">📱</span>
           <div class="whatsapp-note-text"><strong>WhatsApp reminder activated</strong>You go receive reminder the day before delivery. Pay balance before dispatch.</div>
         </div>
+        <!-- Pay Now button — shown after order is placed -->
+        <button class="btn-primary" id="confirmPayBtn" style="display:none;margin-bottom:10px" onclick="confirmPayNow()">💳 Pay Now</button>
         <button class="btn-primary green" onclick="navTo('screen-orders','sb-orders');loadOrders()">View My Orders</button>
         <button class="btn-primary ghost" style="margin-top:10px" onclick="navTo('screen-home','sb-home')">Back to Home</button>
       </div>
@@ -1143,6 +1145,15 @@ function updateDepositInfo(){
     `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
 
+function confirmPayNow(){
+  const btn = document.getElementById('confirmPayBtn');
+  const orderId     = btn.dataset.orderId;
+  const orderRef    = btn.dataset.orderRef;
+  const paymentType = btn.dataset.paymentType;
+  const amount      = parseFloat(btn.dataset.amount);
+  openPaymentModal(parseInt(orderId), orderRef, paymentType, amount);
+}
+
 // ── PAYSTACK PAYMENT STATE ────────────────────
 let paystackPublicKey = '';
 let pendingPayment = null;  // { order_id, order_ref, payment_type, amount }
@@ -1155,12 +1166,8 @@ async function loadPaystackKey(){
 }
 
 function openPaymentModal(orderId, orderRef, paymentType, amount){
-  // Store on the button itself so it survives any state resets
-  const btn = document.getElementById('payNowBtn');
-  btn.dataset.orderId     = orderId;
-  btn.dataset.orderRef    = orderRef;
-  btn.dataset.paymentType = paymentType;
-  btn.dataset.amount      = amount;
+  // Set pendingPayment here — modal is about to open, user will click Pay Now immediately
+  pendingPayment = { order_id: orderId, order_ref: orderRef, payment_type: paymentType, amount };
 
   document.getElementById('payModalRef').textContent = orderRef;
   document.getElementById('payModalAmount').textContent = fmt(amount);
@@ -1183,14 +1190,7 @@ function closePaymentModal(){
 }
 
 async function launchPaystack(){
-  // Read data from button dataset — survives screen transitions and state resets
-  const btn = document.getElementById('payNowBtn');
-  const orderId     = btn.dataset.orderId;
-  const orderRef    = btn.dataset.orderRef;
-  const paymentType = btn.dataset.paymentType;
-  const amount      = parseFloat(btn.dataset.amount);
-
-  if(!orderId || !amount){
+  if(!pendingPayment || !pendingPayment.amount){
     showToast('Payment info missing. Please try again.', 'error');
     return;
   }
@@ -1198,9 +1198,6 @@ async function launchPaystack(){
     showToast('Payment not configured. Contact support.', 'error');
     return;
   }
-
-  // Set pendingPayment from dataset for use in callbacks
-  pendingPayment = { order_id: parseInt(orderId), order_ref: orderRef, payment_type: paymentType, amount };
   showLoading(true);
   try{
     // Step 1: initialize transaction on our backend
@@ -1344,17 +1341,19 @@ function showConfirmation(order){
     <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
     <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
     ${order.payment_type!=='full'?`<div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`:''}`;
-  cart={}; updateCartBar(); showScreen('screen-confirm');
 
-  // Auto-open payment modal after a short delay
-  setTimeout(()=>{
-    openPaymentModal(
-      order.id,
-      order.order_ref,
-      order.payment_type,
-      order.deposit_amount,
-    );
-  }, 800);
+  // Store payment data on the confirm pay button
+  const payBtn = document.getElementById('confirmPayBtn');
+  payBtn.dataset.orderId     = order.id;
+  payBtn.dataset.orderRef    = order.order_ref;
+  payBtn.dataset.paymentType = order.payment_type;
+  payBtn.dataset.amount      = order.deposit_amount;
+  payBtn.textContent         = order.payment_type === 'full'
+    ? `💳 Pay ${fmt(order.total_price)} Now`
+    : `💳 Pay Deposit ${fmt(order.deposit_amount)}`;
+  payBtn.style.display = 'block';
+
+  cart={}; updateCartBar(); showScreen('screen-confirm');
 }
 
 async function loadOrders(){
