@@ -823,6 +823,8 @@ const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
 function fmt(n){ return CURRENCY + Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 window.addEventListener('DOMContentLoaded',()=>{
+  // Clear any stale pending payment from previous sessions
+  localStorage.removeItem('pg_pending_payment');
   if(token && currentUser){ showMainApp(); }
   const d=document.getElementById('deliveryDate');
   if(d){const t=new Date();t.setDate(t.getDate()+1);d.min=t.toISOString().split('T')[0];}
@@ -917,7 +919,9 @@ async function doLogin(){
 
 function doLogout(){
   token=null; currentUser=null;
-  localStorage.removeItem('pg_token'); localStorage.removeItem('pg_user');
+  localStorage.removeItem('pg_token');
+  localStorage.removeItem('pg_user');
+  localStorage.removeItem('pg_pending_payment');
   // FIX 3: Remove class instead of toggling inline style for consistency with showMainApp
   document.getElementById('bottomNav').classList.remove('app-visible');
   document.getElementById('bottomNav').style.display='none';
