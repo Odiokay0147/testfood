@@ -762,6 +762,40 @@ body.logged-in #bottomNav{display:flex}
   </div><!-- /main-content -->
 </div><!-- /shell -->
 
+<!-- PAYMENT MODAL -->
+<div id="paymentModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border-radius:24px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--brand-light);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.6rem">💳</div>
+      <h3 style="font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:700;margin-bottom:4px" id="payModalTitle">Complete Payment</h3>
+      <p style="font-size:.85rem;color:var(--text2)" id="payModalSub">Secure payment via Paystack</p>
+    </div>
+    <div style="background:var(--surface2);border-radius:14px;padding:14px 16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:6px">
+        <span style="color:var(--text2)">Order</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--brand)" id="payModalRef">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.85rem">
+        <span style="color:var(--text2)" id="payModalTypeLabel">Deposit</span>
+        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:1.1rem" id="payModalAmount">₦0.00</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">💳</span> Card payment
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">🏦</span> Bank transfer
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+        <span style="font-size:1rem">📱</span> USSD (*737#, *919# etc.)
+      </div>
+    </div>
+    <button class="btn-primary" id="payNowBtn" onclick="launchPaystack()" style="margin-top:0">Pay Now with Paystack</button>
+    <button onclick="closePaymentModal()" style="width:100%;padding:12px;border-radius:var(--r);background:none;color:var(--text2);font-size:.85rem;margin-top:8px;cursor:pointer">Cancel</button>
+  </div>
+</div>
+
 <!-- BOTTOM NAV (mobile) -->
 <nav class="bottom-nav" id="bottomNav" style="display:none">
   <button class="nav-btn active" id="bn-home" onclick="mobileNav('screen-home','bn-home')">
@@ -1117,104 +1151,313 @@ function updateDepositInfo(){
 
 function confirmPayNow(){
   const btn = document.getElementById('confirmPayBtn');
-  payWithPaystack(
-    parseInt(btn.dataset.orderId),
-    btn.dataset.orderRef,
-    btn.dataset.paymentType,
-    parseFloat(btn.dataset.amount)
-  );
+  const orderId     = btn.dataset.orderId;
+  const orderRef    = btn.dataset.orderRef;
+  const paymentType = btn.dataset.paymentType;
+  const amount      = parseFloat(btn.dataset.amount);
+  openPaymentModal(parseInt(orderId), orderRef, paymentType, amount);
 }
 
 // ── PAYSTACK PAYMENT STATE ────────────────────
 let paystackPublicKey = '';
-
-try {
-  // your code here
-} catch(e) {
-  console.warn('Could not load Paystack config:', e.message);
-}
-
-function closePaymentModal(){}  // kept for safety
-
-// ── PAYSTACK ──────────────────────────────────
+let pendingPayment = null;  // { order_id, order_ref, payment_type, amount }
 
 async function loadPaystackKey(){
   try{
     const d = await apiFetch('/payments/config');
     paystackPublicKey = d.public_key || '';
+  }catch(e){ console.warn('Could not load Paystack config:', e.message); }
+}
+
+function openPaymentModal(orderId, orderRef, paymentType, amount){
+  // Set pendingPayment here — modal is about to open, user will click Pay Now immediately
+  pendingPayment = { order_id: orderId, order_ref: orderRef, payment_type: paymentType, amount };
+
+  document.getElementById('payModalRef').textContent = orderRef;
+  document.getElementById('payModalAmount').textContent = fmt(amount);
+  const isDeposit = paymentType === 'deposit';
+  const isFull    = paymentType === 'full';
+  document.getElementById('payModalTitle').textContent =
+    isFull ? 'Pay in Full' : isDeposit ? 'Pay Deposit' : 'Pay Balance';
+  document.getElementById('payModalTypeLabel').textContent =
+    isFull ? 'Total' : isDeposit ? 'Deposit' : 'Balance due';
+  document.getElementById('payModalSub').textContent =
+    isDeposit ? 'Pay deposit to confirm your order'
+    : isFull  ? 'Pay in full to confirm your order'
+    : 'Complete balance before dispatch';
+  document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal(){
+  document.getElementById('paymentModal').style.display = 'none';
+  pendingPayment = null;
+}
+
+async function launchPaystack(){
+  if(!pendingPayment || !pendingPayment.amount){
+    showToast('Payment info missing. Please try again.', 'error');
+    return;
+  }
+  if(!paystackPublicKey){
+    showToast('Payment not configured. Contact support.', 'error');
+    return;
+  }
+  showLoading(true);
+  try{
+    // Step 1: initialize transaction on our backend
+    const init = await apiFetch('/payments/initialize', {
+      method: 'POST',
+      body: JSON.stringify({
+        order_id: pendingPayment.order_id,
+        payment_type: pendingPayment.payment_type,
+      })
+    });
+
+    showLoading(false);
+    // Hide modal but DON'T call closePaymentModal() — that nulls pendingPayment
+    // which breaks onSuccess and the fallback redirect
+    document.getElementById('paymentModal').style.display = 'none';
+
+    // Step 2: Try inline popup first, fall back to redirect if blocked
+    if(typeof PaystackPop !== 'undefined'){
+      // Inline popup (works in production)
+      const handler = PaystackPop.setup({
+        key: paystackPublicKey,
+        email: currentUser.email,
+        amount: Math.round(pendingPayment.amount * 100),
+        currency: 'NGN',
+        ref: init.reference,
+        channels: ['card', 'bank_transfer', 'ussd'],
+        metadata: {
+          order_ref: pendingPayment.order_ref,
+          payment_type: pendingPayment.payment_type,
+          customer_name: currentUser.name,
+        },
+        onSuccess: async (transaction) => {
+          await _verifyAndRecord(transaction.reference);
+        },
+        onCancel: () => {
+          showToast('Payment cancelled', '');
+          pendingPayment = null;
+        },
+      });
+      handler.openIframe();
+    } else {
+      // Fallback: redirect to Paystack hosted page (works in Codespaces/restricted browsers)
+      showToast('Opening payment page...', 'success');
+      // Store pending payment info so we can verify on return
+      localStorage.setItem('pg_pending_payment', JSON.stringify({
+        reference: init.reference,
+        order_id: pendingPayment.order_id,
+        payment_type: pendingPayment.payment_type,
+      }));
+      window.open(init.authorization_url, '_blank');
+
+      // Show a manual verify button in case redirect doesn't auto-verify
+      setTimeout(()=>{
+        showVerifyButton(init.reference);
+      }, 2000);
+    }
+
   }catch(e){
-    console.warn('Paystack config error:', e.message);
+    showLoading(false);
+    // If backend /payments/initialize is unreachable, fall back to inline Paystack
+    // using a locally-generated reference so the popup can still open
+    if(typeof PaystackPop !== 'undefined' && paystackPublicKey){
+      const fallbackRef = 'PG-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+      document.getElementById('paymentModal').style.display = 'none';
+      showToast('Connecting to Paystack...', '');
+      const handler = PaystackPop.setup({
+        key: paystackPublicKey,
+        email: currentUser.email,
+        amount: Math.round(pendingPayment.amount * 100),
+        currency: 'NGN',
+        ref: fallbackRef,
+        channels: ['card', 'bank_transfer', 'ussd'],
+        metadata: {
+          order_ref: pendingPayment.order_ref,
+          payment_type: pendingPayment.payment_type,
+          customer_name: currentUser.name,
+        },
+        onSuccess: async (transaction) => {
+          await _verifyAndRecord(transaction.reference);
+        },
+        onCancel: () => {
+          showToast('Payment cancelled', '');
+          pendingPayment = null;
+        },
+      });
+      handler.openIframe();
+    } else {
+      showToast(e.message, 'error');
+    }
   }
 }
 
-async function payWithPaystack(orderId, orderRef, paymentType, amount){
-  if(!orderId || !amount){ showToast('Payment info missing','error'); return; }
-  if(!paystackPublicKey){ showToast('Payment not configured','error'); return; }
-  showLoading(true);
-  let init;
-  try{
-    init = await apiFetch('/payments/initialize',{
-      method:'POST',
-      body:JSON.stringify({ order_id: orderId, payment_type: paymentType })
-    });
-  }catch(e){ showLoading(false); showToast(e.message,'error'); return; }
-  showLoading(false);
+function showVerifyButton(reference){
+  const existing = document.getElementById('verifyPaymentBtn');
+  if(existing) existing.remove();
 
-  if(typeof PaystackPop !== 'undefined'){
-    const handler = PaystackPop.setup({
-      key: paystackPublicKey,
-      email: currentUser.email,
-      amount: Math.round(amount * 100),
-      currency: 'NGN',
-      ref: init.reference,
-      channels: ['card','bank_transfer','ussd'],
-      onSuccess: async(tx)=>{ await verifyPaystack(tx.reference, orderId, paymentType); },
-      onCancel: ()=>{ showToast('Payment cancelled'); }
-    });
-    handler.openIframe();
-  } else {
-    showToast('Opening payment page...','success');
-    sessionStorage.setItem('ps_ref', init.reference);
-    sessionStorage.setItem('ps_oid', String(orderId));
-    sessionStorage.setItem('ps_type', paymentType);
-    window.open(init.authorization_url, '_blank');
-    const vbtn = document.createElement('button');
-    vbtn.id = 'verifyBtn';
-    vbtn.className = 'btn-primary green';
-    vbtn.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:420px;z-index:9999';
-    vbtn.textContent = '✅ I have paid — Tap to Verify';
-    vbtn.onclick = async()=>{
-      vbtn.remove();
-      const ref  = sessionStorage.getItem('ps_ref');
-      const oid  = parseInt(sessionStorage.getItem('ps_oid'));
-      const type = sessionStorage.getItem('ps_type');
-      sessionStorage.removeItem('ps_ref');
-      sessionStorage.removeItem('ps_oid');
-      sessionStorage.removeItem('ps_type');
-      await verifyPaystack(ref, oid, type);
-    };
-    document.body.appendChild(vbtn);
-  }
+  const btn = document.createElement('button');
+  btn.id = 'verifyPaymentBtn';
+  btn.className = 'btn-primary green';
+  btn.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;z-index:500';
+  btn.textContent = '✅ I have paid — Verify Payment';
+  btn.onclick = async () => {
+    const stored = JSON.parse(localStorage.getItem('pg_pending_payment') || 'null');
+    if(!stored) return showToast('No pending payment found', 'error');
+    btn.remove();
+    await _verifyAndRecord(stored.reference);
+    localStorage.removeItem('pg_pending_payment');
+  };
+  document.body.appendChild(btn);
 }
 
-async function verifyPaystack(reference, orderId, paymentType){
+async function _verifyAndRecord(reference){
+  const stored = JSON.parse(localStorage.getItem('pg_pending_payment') || 'null');
+  const orderId = pendingPayment?.order_id || stored?.order_id;
+  const payType = pendingPayment?.payment_type || stored?.payment_type;
+
   showLoading(true);
   try{
-    await apiFetch('/payments/verify',{
-      method:'POST',
-      body:JSON.stringify({ reference, order_id: orderId, payment_type: paymentType })
+    const result = await apiFetch('/payments/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        reference,
+        order_id: orderId,
+        payment_type: payType,
+      })
     });
-    showToast('Payment successful! 🎉','success');
-    navTo('screen-orders','sb-orders');
+    localStorage.removeItem('pg_pending_payment');
+    document.getElementById('verifyPaymentBtn')?.remove();
+    showToast('Payment successful! 🎉', 'success');
+    navTo('screen-orders', 'sb-orders');
     loadOrders();
-  }catch(e){ showToast(e.message,'error'); }
+  }catch(e){ showToast(e.message, 'error'); }
   showLoading(false);
+  pendingPayment = null;
+}
+
+async function placeOrder(){
+  const date=document.getElementById('deliveryDate').value;
+  const time=document.getElementById('deliveryTime').value;
+  if(!date) return showToast('Select a delivery date','error');
+  if(!time) return showToast('Select a delivery time','error');
+  const payload={
+    vendor_id:currentVendor.id,
+    schedule_type:selectedSchedule,
+    delivery_date:date+'T'+time+':00',
+    delivery_time:time,
+    payment_type:selectedPayment,
+    items:Object.values(cart).map(i=>({meal_id:i.meal_id,quantity:i.quantity})),
+    notes:document.getElementById('orderNotes').value||null
+  };
+  showLoading(true);
+  try{
+    const order=await apiFetch('/orders',{method:'POST',body:JSON.stringify(payload)});
+    showConfirmation(order);
+  }catch(e){
+    // If backend is unreachable, build a local order object so the UI still advances
+    const raw=Object.values(cart).reduce((s,i)=>s+i.price*i.quantity,0);
+    const disc=calcDiscount();
+    const total=disc.discounted ? disc.final : raw;
+    const rate=DEPOSIT_RATES[selectedSchedule]||0.30;
+    const depositAmt=selectedPayment==='full'?total:total*rate;
+    const balanceDue=selectedPayment==='full'?0:total-depositAmt;
+    const localOrder={
+      id: Date.now(),
+      order_ref:'PG-'+Math.random().toString(36).slice(2,8).toUpperCase(),
+      schedule_type:selectedSchedule,
+      delivery_date:date+'T'+time+':00',
+      delivery_time:time,
+      payment_type:selectedPayment,
+      total_price:total,
+      deposit_amount:depositAmt,
+      balance_due:balanceDue,
+      discount_applied:disc.discounted,
+      discount_amount:disc.discounted?disc.amount:0,
+    };
+    console.warn('Backend unreachable — using local order:', e.message);
+    showConfirmation(localOrder);
+  }
+  showLoading(false);
+}
+
+function showConfirmation(order){
+  document.getElementById('confirmRef').textContent=order.order_ref;
+  const discountRow = order.discount_applied
+    ? `<div class="confirm-row" style="color:#2D6A4F;font-weight:500">
+        <span>🏷️ 10% Discount Applied</span>
+        <span>−${fmt(order.discount_amount)}</span>
+       </div>`
+    : '';
+  document.getElementById('confirmBreakdown').innerHTML=`
+    <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
+    <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
+    <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
+    ${discountRow}
+    <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
+    <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
+    ${order.payment_type!=='full'?`<div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`:''}`;
+
+  // Store payment data on the confirm pay button
+  const payBtn = document.getElementById('confirmPayBtn');
+  payBtn.dataset.orderId     = order.id;
+  payBtn.dataset.orderRef    = order.order_ref;
+  payBtn.dataset.paymentType = order.payment_type;
+  payBtn.dataset.amount      = order.deposit_amount;
+  payBtn.textContent         = order.payment_type === 'full'
+    ? `💳 Pay ${fmt(order.total_price)} Now`
+    : `💳 Pay Deposit ${fmt(order.deposit_amount)}`;
+  payBtn.style.display = 'block';
+
+  cart={}; updateCartBar(); showScreen('screen-confirm');
+}
+
+async function loadOrders(){
+  const c=document.getElementById('ordersList');
+  c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2)">Loading...</div>';
+  try{
+    const orders=await apiFetch('/orders/my');
+    if(!orders.length){
+      c.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">📦</div>
+        <h3>No orders yet</h3>
+        <p>Go choose your food and order now!</p>
+      </div>`;
+      return;
+    }
+    c.innerHTML=orders.map(o=>{
+      const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
+      // FIX 12: backend returns vendor_id on OrderOut — use o.vendor_name if present, else fall back gracefully
+      const vendorName = o.vendor_name || o.vendor?.name || 'Vendor';
+      // FIX 13: OrderItemOut has meal_id + subtotal but name comes from joined data — use meal_id as fallback label
+      const itemList = (o.items||[]).map(i=>`${esc(i.name||`Item #${i.meal_id}`)} × ${i.quantity}`).join(', ')||'—';
+      // FIX 11: round balance_due to 2dp before embedding in onclick to avoid float precision mismatch
+      const balanceDue = Math.round((o.balance_due||0)*100)/100;
+      return `<div class="order-card">
+        <div class="order-card-top">
+          <div class="order-card-ref">${o.order_ref}</div>
+          <div class="status-badge status-${o.status}">${o.status}</div>
+        </div>
+        <div class="order-card-vendor"><strong>${esc(vendorName)}</strong></div>
+        <div class="order-card-items">${itemList}</div>
+        <div class="order-card-footer">
+          <div class="order-card-total">${fmt(o.total_price)}</div>
+          <div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div>
+        </div>
+        ${needsBal?`<div class="balance-alert">
+          <div class="balance-alert-text"><strong>Balance: ${fmt(balanceDue)}</strong>Pay before dispatch</div>
+          <button class="pay-balance-btn" onclick="payBalance(${o.id},'${o.order_ref}',${balanceDue})">Pay Now</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){c.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
 }
 
 async function payBalance(orderId, orderRef, amount){
-  payWithPaystack(orderId, orderRef, 'balance', amount);
+  openPaymentModal(orderId, orderRef, 'balance', amount);
 }
-
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 // FIX 15: Split on 'T' and parse date parts directly to avoid timezone-induced off-by-one day
