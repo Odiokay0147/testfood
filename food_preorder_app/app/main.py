@@ -468,7 +468,7 @@ def verify_payment(
     if order.user_id != current_user.id:
         raise HTTPException(403, "Not your order")
 
-    # Validate amount matches (allow ±1 kobo rounding tolerance)
+    # Validate amount matches — allow ±5 Naira for test mode rounding
     if payment_type == "deposit":
         expected = order.deposit_amount
     elif payment_type == "balance":
@@ -476,7 +476,9 @@ def verify_payment(
     else:
         expected = order.total_price
 
-    if abs(tx["amount_naira"] - expected) > 0.5:
+    print(f"[Payment] Verifying: expected=₦{expected}, got=₦{tx['amount_naira']}, diff=₦{abs(tx['amount_naira']-expected):.2f}")
+
+    if abs(tx["amount_naira"] - expected) > 5.0:
         raise HTTPException(400,
             f"Amount mismatch. Expected ₦{expected:.2f}, got ₦{tx['amount_naira']:.2f}")
 

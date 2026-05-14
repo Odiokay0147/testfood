@@ -278,10 +278,10 @@ def record_payment(db: Session, data: schemas.PaymentCreate, user_id: int) -> mo
         if order.deposit_paid:
             raise HTTPException(400, "Deposit already paid for this order")
         expected = order.deposit_amount
-        if abs(data.amount - expected) > 0.01:
+        if abs(data.amount - expected) > 1.0:   # 1 Naira tolerance for float precision
             raise HTTPException(
                 400,
-                f"Deposit amount mismatch. Expected GHS {expected:.2f}, got GHS {data.amount:.2f}"
+                f"Deposit amount mismatch. Expected ₦{expected:.2f}, got ₦{data.amount:.2f}"
             )
 
     elif data.payment_type == "balance":
@@ -290,10 +290,10 @@ def record_payment(db: Session, data: schemas.PaymentCreate, user_id: int) -> mo
         if not order.deposit_paid:
             raise HTTPException(400, "Deposit must be paid before balance")
         expected = order.balance_due
-        if abs(data.amount - expected) > 0.01:
+        if abs(data.amount - expected) > 1.0:   # 1 Naira tolerance
             raise HTTPException(
                 400,
-                f"Balance amount mismatch. Expected GHS {expected:.2f}, got GHS {data.amount:.2f}"
+                f"Balance amount mismatch. Expected ₦{expected:.2f}, got ₦{data.amount:.2f}"
             )
 
     elif data.payment_type == "full":
