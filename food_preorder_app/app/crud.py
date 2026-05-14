@@ -242,8 +242,9 @@ def update_order_status(db: Session, order_ref: str, new_status: str) -> models.
     order = get_order_by_ref(db, order_ref)
 
     valid_transitions = {
-        "pending":    ["confirmed", "cancelled"],
+        "pending":    ["confirmed", "ordered", "cancelled"],
         "confirmed":  ["dispatched", "cancelled"],
+        "ordered":    ["dispatched", "delivered", "cancelled"],
         "dispatched": ["delivered"],
         "delivered":  [],
         "cancelled":  [],
@@ -316,14 +317,14 @@ def record_payment(db: Session, data: schemas.PaymentCreate, user_id: int) -> mo
     # update order flags and status
     if data.payment_type == "deposit":
         order.deposit_paid = True
-        order.status = "confirmed"
+        order.status = "confirmed"      # deposit paid — awaiting balance + delivery
     elif data.payment_type == "balance":
         order.balance_paid = True
-        # ready for dispatch once balance is cleared
+        order.status = "delivered"      # balance cleared — customer confirms receipt
     elif data.payment_type == "full":
         order.deposit_paid = True
         order.balance_paid = True
-        order.status = "confirmed"
+        order.status = "ordered"        # full payment — awaiting delivery confirmation
 
     db.commit()
     db.refresh(payment)

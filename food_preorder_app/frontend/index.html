@@ -520,6 +520,7 @@ body.logged-in #bottomNav{display:flex}
 .status-badge{font-size:.65rem;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
 .status-pending{background:#FFF3CD;color:#856404}
 .status-confirmed{background:#D1FAE5;color:#065F46}
+.status-ordered{background:#EDE9FE;color:#5B21B6}
 .status-dispatched{background:#DBEAFE;color:#1E40AF}
 .status-delivered{background:#F0FDF4;color:#166534}
 .status-cancelled{background:#FEE2E2;color:#991B1B}
@@ -1264,13 +1265,25 @@ async function loadOrders(){
     }
     c.innerHTML=orders.map(o=>{
       const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
+      const canConfirm=o.status==='dispatched'||(o.status==='ordered'&&o.balance_paid);
       const vendorName=o.vendor_name||o.vendor?.name||'Vendor';
       const itemList=(o.items||[]).map(i=>`${esc(i.name||`Item #${i.meal_id}`)} × ${i.quantity}`).join(', ')||'—';
       const balanceDue=Math.round((o.balance_due||0)*100)/100;
+
+      // Human-friendly status labels
+      const statusLabel={
+        'pending':'Pending',
+        'confirmed':'Deposit Paid',
+        'ordered':'Paid — Awaiting Delivery',
+        'dispatched':'On The Way',
+        'delivered':'Delivered',
+        'cancelled':'Cancelled',
+      }[o.status]||o.status;
+
       return `<div class="order-card">
         <div class="order-card-top">
           <div class="order-card-ref">${o.order_ref}</div>
-          <div class="status-badge status-${o.status}">${o.status}</div>
+          <div class="status-badge status-${o.status}">${statusLabel}</div>
         </div>
         <div class="order-card-vendor"><strong>${esc(vendorName)}</strong></div>
         <div class="order-card-items">${itemList}</div>
@@ -1282,9 +1295,23 @@ async function loadOrders(){
           <div class="balance-alert-text"><strong>Balance: ${fmt(balanceDue)}</strong>Pay before dispatch</div>
           <button class="pay-balance-btn" onclick="payBalance(${o.id},'${o.order_ref}',${balanceDue})">Pay Now</button>
         </div>`:''}
+        ${canConfirm?`<div class="balance-alert" style="background:linear-gradient(135deg,#D1FAE5,#A7F3D0);border-color:#2D6A4F;margin-top:10px">
+          <div class="balance-alert-text"><strong style="color:#065F46">Your order don reach you?</strong><span style="color:#047857">Tap to confirm delivery</span></div>
+          <button class="pay-balance-btn" style="background:#2D6A4F" onclick="confirmDelivery('${o.order_ref}')">Confirm</button>
+        </div>`:''}
       </div>`;
     }).join('');
   }catch(e){c.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
+}
+
+async function confirmDelivery(orderRef){
+  showLoading(true);
+  try{
+    await apiFetch(`/orders/${orderRef}/confirm-delivery`,{method:'POST'});
+    showToast('Delivery confirmed! Thank you 🎉','success');
+    loadOrders();
+  }catch(e){showToast(e.message,'error');}
+  showLoading(false);
 }
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

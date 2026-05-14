@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from app.database import Base
+from database import Base
 from datetime import datetime
 
 
@@ -63,7 +63,7 @@ class Order(Base):
     schedule_type = Column(String)                             # hourly | daily | weekly
     delivery_date = Column(DateTime)
     delivery_time = Column(String, nullable=True)              # e.g. "13:00"
-    status = Column(String, default="pending")                 # pending|confirmed|dispatched|delivered|cancelled
+    status = Column(String, default="pending")  # pending|confirmed|ordered|dispatched|delivered|cancelled
     notes = Column(String, nullable=True)
     discount_applied = Column(Boolean, default=False)
     discount_amount = Column(Float, default=0.0)

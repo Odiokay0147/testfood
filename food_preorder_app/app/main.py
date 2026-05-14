@@ -334,11 +334,30 @@ def update_status(
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    Update order status. Follows valid transitions only:
-    pending → confirmed → dispatched → delivered
-    Any stage → cancelled
+    Update order status. Follows valid transitions:
+    pending → confirmed/ordered → dispatched → delivered
     """
     return crud.update_order_status(db, order_ref, body.status)
+
+
+@app.post("/orders/{order_ref}/confirm-delivery")
+def confirm_delivery(
+    order_ref: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Customer confirms they have received their order.
+    Only valid for orders in 'dispatched' or 'ordered' status.
+    """
+    order = crud.get_order_by_ref(db, order_ref)
+    if order.user_id != current_user.id:
+        raise HTTPException(403, "Not your order")
+    if order.status not in ("dispatched", "ordered"):
+        raise HTTPException(400, f"Cannot confirm delivery — order is '{order.status}'")
+    order.status = "delivered"
+    db.commit()
+    return {"message": "Delivery confirmed! Thank you 🎉", "order_ref": order_ref, "status": "delivered"}
 
 
 # ─────────────────────────────────────────────

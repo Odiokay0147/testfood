@@ -184,7 +184,7 @@ class StatusUpdate(BaseModel):
 
     @validator("status")
     def validate_status(cls, v):
-        allowed = ("pending", "confirmed", "dispatched", "delivered", "cancelled")
+        allowed = ("pending", "confirmed", "ordered", "dispatched", "delivered", "cancelled")
         if v not in allowed:
             raise ValueError(f"status must be one of {allowed}")
         return v
