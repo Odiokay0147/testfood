@@ -1115,6 +1115,52 @@ function updateDepositInfo(){
     `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
 
+async function placeOrder(){
+  const date=document.getElementById('deliveryDate').value;
+  const time=document.getElementById('deliveryTime').value;
+  if(!date) return showToast('Select a delivery date','error');
+  if(!time) return showToast('Select a delivery time','error');
+  const payload={
+    vendor_id:currentVendor.id,
+    schedule_type:selectedSchedule,
+    delivery_date:date+'T'+time+':00',
+    delivery_time:time,
+    payment_type:selectedPayment,
+    items:Object.values(cart).map(i=>({meal_id:i.meal_id,quantity:i.quantity})),
+    notes:document.getElementById('orderNotes').value||null
+  };
+  showLoading(true);
+  try{
+    const order=await apiFetch('/orders',{method:'POST',body:JSON.stringify(payload)});
+    showConfirmation(order);
+  }catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+function showConfirmation(order){
+  document.getElementById('confirmRef').textContent=order.order_ref;
+  const discountRow=order.discount_applied
+    ?`<div class="confirm-row" style="color:#2D6A4F;font-weight:500"><span>🏷️ 10% Discount Applied</span><span>−${fmt(order.discount_amount)}</span></div>`:'';
+  document.getElementById('confirmBreakdown').innerHTML=`
+    <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
+    <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
+    <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
+    ${discountRow}
+    <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
+    <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
+    ${order.payment_type!=='full'?`<div class="confirm-row"><span>Balance on Delivery</span><span>${fmt(order.balance_due)}</span></div>`:''}`;
+  const payBtn=document.getElementById('confirmPayBtn');
+  payBtn.dataset.orderId=order.id;
+  payBtn.dataset.orderRef=order.order_ref;
+  payBtn.dataset.paymentType=order.payment_type;
+  payBtn.dataset.amount=order.deposit_amount;
+  payBtn.textContent=order.payment_type==='full'
+    ?`💳 Pay ${fmt(order.total_price)} Now`
+    :`💳 Pay Deposit ${fmt(order.deposit_amount)}`;
+  payBtn.style.display='block';
+  cart={}; updateCartBar(); showScreen('screen-confirm');
+}
+
 function confirmPayNow(){
   const btn = document.getElementById('confirmPayBtn');
   payWithPaystack(
@@ -1203,6 +1249,43 @@ async function payBalance(orderId, orderRef, amount){
   payWithPaystack(orderId, orderRef, 'balance', amount);
 }
 
+async function loadOrders(){
+  const c=document.getElementById('ordersList');
+  c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text2)">Loading...</div>';
+  try{
+    const orders=await apiFetch('/orders/my');
+    if(!orders.length){
+      c.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+        <div class="empty-state-icon">📦</div>
+        <h3>No orders yet</h3>
+        <p>Go choose your food and order now!</p>
+      </div>`;
+      return;
+    }
+    c.innerHTML=orders.map(o=>{
+      const needsBal=o.payment_type==='deposit'&&o.deposit_paid&&!o.balance_paid&&o.status==='confirmed';
+      const vendorName=o.vendor_name||o.vendor?.name||'Vendor';
+      const itemList=(o.items||[]).map(i=>`${esc(i.name||`Item #${i.meal_id}`)} × ${i.quantity}`).join(', ')||'—';
+      const balanceDue=Math.round((o.balance_due||0)*100)/100;
+      return `<div class="order-card">
+        <div class="order-card-top">
+          <div class="order-card-ref">${o.order_ref}</div>
+          <div class="status-badge status-${o.status}">${o.status}</div>
+        </div>
+        <div class="order-card-vendor"><strong>${esc(vendorName)}</strong></div>
+        <div class="order-card-items">${itemList}</div>
+        <div class="order-card-footer">
+          <div class="order-card-total">${fmt(o.total_price)}</div>
+          <div class="order-card-date">📅 ${fmtDate(o.delivery_date)}</div>
+        </div>
+        ${needsBal?`<div class="balance-alert">
+          <div class="balance-alert-text"><strong>Balance: ${fmt(balanceDue)}</strong>Pay before dispatch</div>
+          <button class="pay-balance-btn" onclick="payBalance(${o.id},'${o.order_ref}',${balanceDue})">Pay Now</button>
+        </div>`:''}
+      </div>`;
+    }).join('');
+  }catch(e){c.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${e.message}</p></div>`;}
+}
 
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 // FIX 15: Split on 'T' and parse date parts directly to avoid timezone-induced off-by-one day
