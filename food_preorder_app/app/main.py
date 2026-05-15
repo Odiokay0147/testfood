@@ -458,23 +458,29 @@ def verify_payment(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """
-    Step 2: Verify a completed Paystack transaction.
-    Frontend calls this after the Paystack popup closes with success.
-
-    Body: { reference, order_id, payment_type }
-    """
     reference    = body.get("reference")
     order_id     = body.get("order_id")
     payment_type = body.get("payment_type", "deposit")
 
+    print(f"[Verify] ref={reference}, order_id={order_id}, type={payment_type}, user={current_user.id}")
+
     if not reference:
         raise HTTPException(400, "Transaction reference required")
+    if not order_id:
+        raise HTTPException(400, "order_id required")
+
+    # Coerce order_id to int
+    try:
+        order_id = int(order_id)
+    except (ValueError, TypeError):
+        raise HTTPException(400, f"Invalid order_id: {order_id}")
 
     # Verify with Paystack
     try:
         tx = verify_transaction(reference)
+        print(f"[Verify] Paystack status={tx['status']}, amount=₦{tx['amount_naira']}, channel={tx['channel']}")
     except Exception as e:
+        print(f"[Verify] Paystack API error: {e}")
         raise HTTPException(502, f"Paystack verification error: {str(e)}")
 
     if tx["status"] != "success":
@@ -483,11 +489,13 @@ def verify_payment(
     # Get order
     order = db.query(models.Order).filter(models.Order.id == order_id).first()
     if not order:
+        print(f"[Verify] Order {order_id} not found")
         raise HTTPException(404, "Order not found")
     if order.user_id != current_user.id:
+        print(f"[Verify] Order user_id={order.user_id} != current user {current_user.id}")
         raise HTTPException(403, "Not your order")
 
-    # Validate amount matches — allow ±5 Naira for test mode rounding
+    # Validate amount
     if payment_type == "deposit":
         expected = order.deposit_amount
     elif payment_type == "balance":
@@ -495,39 +503,81 @@ def verify_payment(
     else:
         expected = order.total_price
 
-    print(f"[Payment] Verifying: expected=₦{expected}, got=₦{tx['amount_naira']}, diff=₦{abs(tx['amount_naira']-expected):.2f}")
+    diff = abs(tx["amount_naira"] - expected)
+    print(f"[Verify] expected=₦{expected}, got=₦{tx['amount_naira']}, diff=₦{diff:.2f}")
 
-    if abs(tx["amount_naira"] - expected) > 5.0:
+    if diff > 5.0:
         raise HTTPException(400,
             f"Amount mismatch. Expected ₦{expected:.2f}, got ₦{tx['amount_naira']:.2f}")
 
-    # Record payment in our DB
+    # Check for duplicate payment
+    existing = db.query(models.Payment).filter(models.Payment.reference == reference).first()
+    if existing:
+        print(f"[Verify] Reference {reference} already recorded — returning existing")
+        db.refresh(order)
+        return {
+            "message": "Payment already recorded ✅",
+            "order_ref": order.order_ref,
+            "order_status": order.status,
+            "amount_paid": tx["amount_naira"],
+            "channel": tx["channel"],
+            "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
+            "deposit_paid": order.deposit_paid,
+            "balance_paid": order.balance_paid,
+        }
+
+    # Record payment
     from app.schemas import PaymentCreate
     payment_data = PaymentCreate(
         order_id=order_id,
         amount=tx["amount_naira"],
         payment_type=payment_type,
-        method=tx["channel"],        # card | bank_transfer | ussd
+        method=tx["channel"],
         reference=reference,
     )
-    result = crud.record_payment(db, payment_data, current_user.id)
+    try:
+        result = crud.record_payment(db, payment_data, current_user.id)
+        print(f"[Verify] Payment recorded. Order status now: {order.status}")
+    except Exception as e:
+        print(f"[Verify] record_payment failed: {e}")
+        raise HTTPException(500, f"Failed to record payment: {str(e)}")
+
     db.refresh(order)
+    print(f"[Verify] Final order status: {order.status}")
 
     # Send WhatsApp notifications
     if current_user.phone:
-        if payment_type == "deposit":
-            send_deposit_receipt(
-                customer_name=current_user.name,
-                phone=current_user.phone,
-                order_ref=order.order_ref,
-                amount=tx["amount_naira"],
-                balance_due=order.balance_due,
-                vendor_name=order.vendor.name,
-            )
-        elif payment_type in ("balance", "full"):
-            send_dispatch_notification(
-                customer_name=current_user.name,
-                phone=current_user.phone,
+        try:
+            if payment_type == "deposit":
+                send_deposit_receipt(
+                    customer_name=current_user.name,
+                    phone=current_user.phone,
+                    order_ref=order.order_ref,
+                    amount=tx["amount_naira"],
+                    balance_due=order.balance_due,
+                    vendor_name=order.vendor.name,
+                )
+            elif payment_type in ("balance", "full"):
+                send_dispatch_notification(
+                    customer_name=current_user.name,
+                    phone=current_user.phone,
+                    order_ref=order.order_ref,
+                    vendor_name=order.vendor.name,
+                    delivery_time=order.delivery_time or "your scheduled time",
+                )
+        except Exception as e:
+            print(f"[Verify] WhatsApp notification failed (non-fatal): {e}")
+
+    return {
+        "message":        "Payment verified and recorded ✅",
+        "order_ref":      order.order_ref,
+        "order_status":   order.status,
+        "amount_paid":    tx["amount_naira"],
+        "channel":        tx["channel"],
+        "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
+        "deposit_paid":   order.deposit_paid,
+        "balance_paid":   order.balance_paid,
+    }
                 order_ref=order.order_ref,
                 vendor_name=order.vendor.name,
                 delivery_time=order.delivery_time or "your scheduled time",
