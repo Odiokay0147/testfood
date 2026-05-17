@@ -246,7 +246,7 @@ def my_orders(
             "order_ref": o.order_ref,
             "user_id": o.user_id,
             "vendor_id": o.vendor_id,
-            "vendor_name": o.vendor.name if o.vendor else "Vendor",  # FIX 12
+            "vendor_name": o.vendor.name if o.vendor else "Vendor",
             "total_price": o.total_price,
             "deposit_amount": o.deposit_amount,
             "balance_due": o.balance_due,
@@ -262,7 +262,7 @@ def my_orders(
             "discount_amount": o.discount_amount,
             "reminder_sent": o.reminder_sent,
             "created_at": o.created_at.isoformat() if o.created_at else None,
-            "items": [  # FIX 13: include meal name on each item
+            "items": [
                 {
                     "id": item.id,
                     "meal_id": item.meal_id,
@@ -378,7 +378,6 @@ def vendor_orders(
     return crud.get_orders_for_vendor(db, vendor_id, status, date)
 
 
-# ─────────────────────────────────────────────
 # ─────────────────────────────────────────────
 # PAYMENTS — PAYSTACK INTEGRATION
 # ─────────────────────────────────────────────
@@ -569,29 +568,14 @@ def verify_payment(
             print(f"[Verify] WhatsApp notification failed (non-fatal): {e}")
 
     return {
-        "message":        "Payment verified and recorded ✅",
-        "order_ref":      order.order_ref,
-        "order_status":   order.status,
-        "amount_paid":    tx["amount_naira"],
-        "channel":        tx["channel"],
+        "message":           "Payment verified and recorded ✅",
+        "order_ref":         order.order_ref,
+        "order_status":      order.status,
+        "amount_paid":       tx["amount_naira"],
+        "channel":           tx["channel"],
         "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
-        "deposit_paid":   order.deposit_paid,
-        "balance_paid":   order.balance_paid,
-    }
-                order_ref=order.order_ref,
-                vendor_name=order.vendor.name,
-                delivery_time=order.delivery_time or "your scheduled time",
-            )
-
-    return {
-        "message":        "Payment verified and recorded ✅",
-        "order_ref":      order.order_ref,
-        "order_status":   order.status,
-        "amount_paid":    tx["amount_naira"],
-        "channel":        tx["channel"],
-        "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
-        "deposit_paid":   order.deposit_paid,
-        "balance_paid":   order.balance_paid,
+        "deposit_paid":      order.deposit_paid,
+        "balance_paid":      order.balance_paid,
     }
 
 
@@ -619,9 +603,9 @@ async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
     if event_type != "charge.success":
         return {"status": "ignored", "event": event_type}
 
-    data     = event["data"]
-    ref      = data["reference"]
-    metadata = data.get("metadata", {})
+    data         = event["data"]
+    ref          = data["reference"]
+    metadata     = data.get("metadata", {})
     order_ref    = metadata.get("order_ref")
     payment_type = metadata.get("payment_type", "deposit")
 
@@ -682,11 +666,11 @@ def make_payment_manual(
     result = crud.record_payment(db, payment, current_user.id)
     order  = db.query(models.Order).filter(models.Order.id == payment.order_id).first()
     return {
-        "payment":          result,
-        "order_ref":        order.order_ref,
-        "order_status":     order.status,
+        "payment":           result,
+        "order_ref":         order.order_ref,
+        "order_status":      order.status,
         "balance_remaining": order.balance_due if not order.balance_paid else 0.0,
-        "message":          "Payment recorded ✅",
+        "message":           "Payment recorded ✅",
     }
 
 
