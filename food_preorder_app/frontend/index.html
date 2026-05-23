@@ -110,10 +110,6 @@ img{display:block;max-width:100%}
 @media(max-width:360px){
   .hero h1{font-size:1.4rem}
   .hero{padding:22px 18px}
-  .schedule-chips{flex-direction:column}
-  .schedule-chip{padding:10px 12px;display:flex;align-items:center;gap:10px;text-align:left}
-  .chip-icon{font-size:1.1rem;margin-bottom:0;flex-shrink:0}
-  .chip-label{font-size:.8rem}
   .auth-card{padding:20px 16px}
   .meal-card{gap:10px;padding:12px}
   .meal-emoji{width:44px;height:44px;font-size:1.4rem}
@@ -243,8 +239,6 @@ img{display:block;max-width:100%}
     margin:0 auto 16px!important;
     box-sizing:border-box;
   }
-  .schedule-chips{gap:12px}
-  .schedule-chip{padding:14px 10px}
 }
 
 /* ── Wide desktop (≥1280px): 3-col meals ── */
@@ -456,13 +450,7 @@ body.logged-in #bottomNav{display:flex}
 .form-input{width:100%;padding:13px 16px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-size:.95rem;transition:border-color .2s;outline:none}
 .form-input:focus{border-color:var(--brand)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.schedule-chips{display:flex;gap:8px}
-.schedule-chip{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:var(--surface2);border:2px solid transparent;cursor:pointer;transition:all .2s}
-.schedule-chip.selected{background:var(--brand-light);border-color:var(--brand)}
-@media(prefers-color-scheme:dark){.schedule-chip.selected{background:#3A1A0A}}
-.chip-icon{font-size:1.4rem;display:block;margin-bottom:4px}
-.chip-label{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;display:block}
-.chip-sub{font-size:.65rem;color:var(--text2);display:block;margin-top:2px}
+
 .payment-options{display:flex;flex-direction:column;gap:10px}
 .payment-option{padding:14px 16px;border-radius:14px;background:var(--card-bg);border:2px solid var(--border);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
 .payment-option.selected{border-color:var(--brand);background:var(--brand-light)}
@@ -697,13 +685,8 @@ body.logged-in #bottomNav{display:flex}
       <div class="order-screen">
         <div class="section-title" style="padding-left:0">Your Items</div>
         <div class="order-summary-card" id="orderSummaryCard"></div>
-        <div class="section-title" style="padding-left:0">Delivery Schedule</div>
-        <div class="schedule-chips">
-          <div class="schedule-chip selected" onclick="selectSchedule(this,'hourly')"><span class="chip-icon">⏱</span><span class="chip-label">Hourly</span><span class="chip-sub">30% deposit</span></div>
-          <div class="schedule-chip" onclick="selectSchedule(this,'daily')"><span class="chip-icon">📅</span><span class="chip-label">Daily</span><span class="chip-sub">40% deposit</span></div>
-          <div class="schedule-chip" onclick="selectSchedule(this,'weekly')"><span class="chip-icon">🗓</span><span class="chip-label">Weekly</span><span class="chip-sub">50% deposit</span></div>
-        </div>
-        <div style="margin-top:16px">
+        <div class="section-title" style="padding-left:0">Delivery Details</div>
+        <div>
           <div class="form-row">
             <div class="form-group"><label class="form-label">Delivery Date</label><input class="form-input" type="date" id="deliveryDate"/></div>
             <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" type="time" id="deliveryTime"/></div>
@@ -783,9 +766,9 @@ let token = localStorage.getItem('pg_token')||null;
 let currentUser = JSON.parse(localStorage.getItem('pg_user')||'null');
 let currentVendor = null;
 let cart = {};
-let selectedSchedule = 'hourly';
+// schedule_type fixed to 'daily' — no chips needed
 let selectedPayment = 'deposit';
-const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
+const DEPOSIT_RATE = 0.30; // fixed 30% deposit
 
 function fmt(n){ return CURRENCY + Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
@@ -936,9 +919,7 @@ async function openVendor(id,name,desc){
   showScreen('screen-menu');
 
   // FIX 9: Reset schedule/payment state each time a new vendor is opened
-  selectedSchedule='hourly';
   selectedPayment='deposit';
-  document.querySelectorAll('.schedule-chip').forEach((c,i)=>c.classList.toggle('selected',i===0));
   document.querySelectorAll('.payment-option').forEach((o,i)=>o.classList.toggle('selected',i===0));
   document.getElementById('placeOrderBtn').textContent='Place Order & Pay Deposit';
 
@@ -1086,11 +1067,6 @@ function renderOrderSummary(){
   document.getElementById('orderSummaryCard').innerHTML=rows;
 }
 
-function selectSchedule(el,type){
-  document.querySelectorAll('.schedule-chip').forEach(c=>c.classList.remove('selected'));
-  el.classList.add('selected'); selectedSchedule=type; updateDepositInfo();
-}
-
 function selectPayment(el,type){
   document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected'); selectedPayment=type; updateDepositInfo();
@@ -1107,11 +1083,11 @@ function updateDepositInfo(){
   const info=document.getElementById('depositInfo');
   if(selectedPayment==='full'){info.style.display='none';return;}
   info.style.display='flex';
-  const rate=DEPOSIT_RATES[selectedSchedule];
+  const rate=DEPOSIT_RATE;
   const depositAmt=total*rate;
   const balanceAmt=total*(1-rate);
   document.getElementById('depositInfoText').innerHTML=
-    `<strong>You go pay ${fmt(depositAmt)} now (${Math.round(rate*100)}% deposit).</strong>`+
+    `<strong>You go pay ${fmt(depositAmt)} now (30% deposit).</strong>`+
     (disc.discounted?` <span style="color:#2D6A4F">10% discount don apply — you save ${fmt(disc.amount)}!</span> `:'  ')+
     `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
@@ -1123,7 +1099,7 @@ async function placeOrder(){
   if(!time) return showToast('Select a delivery time','error');
   const payload={
     vendor_id:currentVendor.id,
-    schedule_type:selectedSchedule,
+    schedule_type:'daily',
     delivery_date:date+'T'+time+':00',
     delivery_time:time,
     payment_type:selectedPayment,
@@ -1144,8 +1120,7 @@ function showConfirmation(order){
     ?`<div class="confirm-row" style="color:#2D6A4F;font-weight:500"><span>🏷️ 10% Discount Applied</span><span>−${fmt(order.discount_amount)}</span></div>`:'';
   document.getElementById('confirmBreakdown').innerHTML=`
     <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
-    <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
-    <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
+<div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
     ${discountRow}
     <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
     <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
