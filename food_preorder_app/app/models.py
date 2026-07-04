@@ -12,6 +12,8 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     phone = Column(String, nullable=True)
     password = Column(String)
+    role = Column(String, default="customer")   # customer | vendor
+    vendor_id = Column(Integer, ForeignKey("vendors.id"), nullable=True)  # set for vendor accounts
 
     orders = relationship("Order", back_populates="user")
 

@@ -110,6 +110,10 @@ img{display:block;max-width:100%}
 @media(max-width:360px){
   .hero h1{font-size:1.4rem}
   .hero{padding:22px 18px}
+  .schedule-chips{flex-direction:column}
+  .schedule-chip{padding:10px 12px;display:flex;align-items:center;gap:10px;text-align:left}
+  .chip-icon{font-size:1.1rem;margin-bottom:0;flex-shrink:0}
+  .chip-label{font-size:.8rem}
   .auth-card{padding:20px 16px}
   .meal-card{gap:10px;padding:12px}
   .meal-emoji{width:44px;height:44px;font-size:1.4rem}
@@ -239,6 +243,8 @@ img{display:block;max-width:100%}
     margin:0 auto 16px!important;
     box-sizing:border-box;
   }
+  .schedule-chips{gap:12px}
+  .schedule-chip{padding:14px 10px}
 }
 
 /* ── Wide desktop (≥1280px): 3-col meals ── */
@@ -450,7 +456,13 @@ body.logged-in #bottomNav{display:flex}
 .form-input{width:100%;padding:13px 16px;background:var(--card-bg);border:1.5px solid var(--border);border-radius:var(--r);color:var(--text);font-size:.95rem;transition:border-color .2s;outline:none}
 .form-input:focus{border-color:var(--brand)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-
+.schedule-chips{display:flex;gap:8px}
+.schedule-chip{flex:1;padding:12px 8px;border-radius:14px;text-align:center;background:var(--surface2);border:2px solid transparent;cursor:pointer;transition:all .2s}
+.schedule-chip.selected{background:var(--brand-light);border-color:var(--brand)}
+@media(prefers-color-scheme:dark){.schedule-chip.selected{background:#3A1A0A}}
+.chip-icon{font-size:1.4rem;display:block;margin-bottom:4px}
+.chip-label{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;display:block}
+.chip-sub{font-size:.65rem;color:var(--text2);display:block;margin-top:2px}
 .payment-options{display:flex;flex-direction:column;gap:10px}
 .payment-option{padding:14px 16px;border-radius:14px;background:var(--card-bg);border:2px solid var(--border);cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px}
 .payment-option.selected{border-color:var(--brand);background:var(--brand-light)}
@@ -554,6 +566,34 @@ body.logged-in #bottomNav{display:flex}
 .spinner{width:44px;height:44px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .divider{height:1px;background:var(--border);margin:20px 0}
+
+/* ═══════════════════════════════════════
+   VENDOR DASHBOARD
+═══════════════════════════════════════ */
+.vendor-stat-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1.5px solid var(--border);box-shadow:var(--shadow)}
+.vstat-num{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--brand);margin-bottom:4px}
+.vstat-label{font-size:.75rem;color:var(--text2);font-weight:500}
+.vfilter-btn{padding:7px 16px;border-radius:20px;font-size:.8rem;font-weight:500;background:var(--surface2);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .2s;border:none;font-family:inherit}
+.vfilter-btn.active{background:var(--brand);color:#fff}
+.vendor-order-card{background:var(--card-bg);border-radius:var(--rcard);padding:16px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:12px}
+.vendor-order-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.vendor-order-ref{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;color:var(--brand)}
+.vendor-customer{font-size:.85rem;font-weight:600;margin-bottom:2px}
+.vendor-customer-phone{font-size:.75rem;color:var(--text2);margin-bottom:8px}
+.vendor-items{font-size:.8rem;color:var(--text2);line-height:1.6;margin-bottom:10px;padding:10px;background:var(--surface2);border-radius:10px}
+.vendor-order-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border)}
+.vendor-total{font-family:'Syne',sans-serif;font-weight:700;font-size:.95rem}
+.vendor-delivery{font-size:.75rem;color:var(--text2)}
+.vendor-payment-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.vpay-badge{font-size:.68rem;font-weight:600;padding:3px 10px;border-radius:20px}
+.vpay-deposit-paid{background:#D1FAE5;color:#065F46}
+.vpay-balance-due{background:#FFF3CD;color:#856404}
+.vpay-fully-paid{background:#DBEAFE;color:#1E40AF}
+.dispatch-btn{background:var(--brand);color:#fff;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer;border:none;transition:opacity .2s}
+.dispatch-btn:hover{opacity:.85}
+.dispatch-btn:disabled{opacity:.4;cursor:not-allowed}
+.vendor-notes{font-size:.75rem;color:var(--text2);font-style:italic;margin-top:6px;padding:6px 10px;background:var(--surface2);border-radius:8px}
+@media(min-width:600px){#vendorStats{grid-template-columns:repeat(4,1fr)!important}}
 </style>
 </head>
 <body>
@@ -574,6 +614,10 @@ body.logged-in #bottomNav{display:flex}
       <div class="sidebar-btn" id="sb-orders" onclick="navTo('screen-orders','sb-orders');loadOrders()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
         My Orders
+      </div>
+      <div class="sidebar-btn" id="sb-vendor" style="display:none" onclick="navTo('screen-vendor','sb-vendor');loadVendorDashboard()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
       </div>
       <div class="sidebar-btn" onclick="doLogout()" style="margin-top:auto;color:var(--text2)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -685,8 +729,13 @@ body.logged-in #bottomNav{display:flex}
       <div class="order-screen">
         <div class="section-title" style="padding-left:0">Your Items</div>
         <div class="order-summary-card" id="orderSummaryCard"></div>
-        <div class="section-title" style="padding-left:0">Delivery Details</div>
-        <div>
+        <div class="section-title" style="padding-left:0">Delivery Schedule</div>
+        <div class="schedule-chips">
+          <div class="schedule-chip selected" onclick="selectSchedule(this,'hourly')"><span class="chip-icon">⏱</span><span class="chip-label">Hourly</span><span class="chip-sub">30% deposit</span></div>
+          <div class="schedule-chip" onclick="selectSchedule(this,'daily')"><span class="chip-icon">📅</span><span class="chip-label">Daily</span><span class="chip-sub">40% deposit</span></div>
+          <div class="schedule-chip" onclick="selectSchedule(this,'weekly')"><span class="chip-icon">🗓</span><span class="chip-label">Weekly</span><span class="chip-sub">50% deposit</span></div>
+        </div>
+        <div style="margin-top:16px">
           <div class="form-row">
             <div class="form-group"><label class="form-label">Delivery Date</label><input class="form-input" type="date" id="deliveryDate"/></div>
             <div class="form-group"><label class="form-label">Delivery Time</label><input class="form-input" type="time" id="deliveryTime"/></div>
@@ -743,6 +792,48 @@ body.logged-in #bottomNav{display:flex}
       </div>
     </div>
 
+
+    <!-- VENDOR DASHBOARD -->
+    <div class="screen" id="screen-vendor">
+      <div class="topbar">
+        <div class="topbar-logo">Vendor <span>Panel</span></div>
+        <div class="avatar-btn" id="vendorAvatarBtn">V</div>
+      </div>
+
+      <!-- Stats bar -->
+      <div id="vendorStats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:0 20px 20px">
+        <div class="vendor-stat-card" id="vstat-today">
+          <div class="vstat-num" id="vstat-today-num">—</div>
+          <div class="vstat-label">Today's Orders</div>
+        </div>
+        <div class="vendor-stat-card" id="vstat-pending">
+          <div class="vstat-num" id="vstat-pending-num">—</div>
+          <div class="vstat-label">To Dispatch</div>
+        </div>
+        <div class="vendor-stat-card">
+          <div class="vstat-num" id="vstat-revenue">—</div>
+          <div class="vstat-label">Revenue Collected</div>
+        </div>
+        <div class="vendor-stat-card" style="border-color:var(--accent)">
+          <div class="vstat-num" id="vstat-balance" style="color:var(--accent)">—</div>
+          <div class="vstat-label">Balance Pending</div>
+        </div>
+      </div>
+
+      <!-- Filter tabs -->
+      <div style="display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none">
+        <button class="vfilter-btn active" onclick="filterVendorOrders(this,'all')">All</button>
+        <button class="vfilter-btn" onclick="filterVendorOrders(this,'confirmed')">To Dispatch</button>
+        <button class="vfilter-btn" onclick="filterVendorOrders(this,'ordered')">Paid Full</button>
+        <button class="vfilter-btn" onclick="filterVendorOrders(this,'dispatched')">Dispatched</button>
+        <button class="vfilter-btn" onclick="filterVendorOrders(this,'delivered')">Delivered</button>
+      </div>
+
+      <!-- Orders list -->
+      <div style="padding:0 20px" id="vendorOrdersList">
+        <div style="text-align:center;padding:40px;color:var(--text2)">Loading orders...</div>
+      </div>
+    </div>
   </div><!-- /main-content -->
 </div><!-- /shell -->
 
@@ -753,6 +844,9 @@ body.logged-in #bottomNav{display:flex}
   </button>
   <button class="nav-btn" id="bn-orders" onclick="mobileNav('screen-orders','bn-orders');loadOrders()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>My Orders
+  </button>
+  <button class="nav-btn" id="bn-vendor" style="display:none" onclick="mobileNav('screen-vendor','bn-vendor');loadVendorDashboard()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
   </button>
   <button class="nav-btn" onclick="doLogout()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Logout
@@ -766,9 +860,9 @@ let token = localStorage.getItem('pg_token')||null;
 let currentUser = JSON.parse(localStorage.getItem('pg_user')||'null');
 let currentVendor = null;
 let cart = {};
-// schedule_type fixed to 'daily' — no chips needed
+let selectedSchedule = 'hourly';
 let selectedPayment = 'deposit';
-const DEPOSIT_RATE = 0.30; // fixed 30% deposit
+const DEPOSIT_RATES = {hourly:.30,daily:.40,weekly:.50};
 
 function fmt(n){ return CURRENCY + Number(n).toLocaleString('en-NG',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
@@ -803,7 +897,11 @@ function mobileNav(screenId, btnId){
 }
 
 function showMainApp(){
-  // FIX 2: Use class toggle so CSS media queries control sidebar visibility, not inline style
+  if(currentUser && currentUser.role === 'vendor'){
+    showVendorApp();
+    return;
+  }
+  // Customer flow
   document.getElementById('bottomNav').classList.add('app-visible');
   document.getElementById('bottomNav').style.removeProperty('display');
   document.body.classList.add('logged-in');
@@ -816,7 +914,7 @@ function showMainApp(){
   }
   showScreen('screen-home');
   loadVendors();
-  loadPaystackKey(); // load Paystack public key in background
+  loadPaystackKey();
 }
 
 async function apiFetch(path,opts={}){
@@ -919,7 +1017,9 @@ async function openVendor(id,name,desc){
   showScreen('screen-menu');
 
   // FIX 9: Reset schedule/payment state each time a new vendor is opened
+  selectedSchedule='hourly';
   selectedPayment='deposit';
+  document.querySelectorAll('.schedule-chip').forEach((c,i)=>c.classList.toggle('selected',i===0));
   document.querySelectorAll('.payment-option').forEach((o,i)=>o.classList.toggle('selected',i===0));
   document.getElementById('placeOrderBtn').textContent='Place Order & Pay Deposit';
 
@@ -1067,6 +1167,11 @@ function renderOrderSummary(){
   document.getElementById('orderSummaryCard').innerHTML=rows;
 }
 
+function selectSchedule(el,type){
+  document.querySelectorAll('.schedule-chip').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected'); selectedSchedule=type; updateDepositInfo();
+}
+
 function selectPayment(el,type){
   document.querySelectorAll('.payment-option').forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected'); selectedPayment=type; updateDepositInfo();
@@ -1083,11 +1188,11 @@ function updateDepositInfo(){
   const info=document.getElementById('depositInfo');
   if(selectedPayment==='full'){info.style.display='none';return;}
   info.style.display='flex';
-  const rate=DEPOSIT_RATE;
+  const rate=DEPOSIT_RATES[selectedSchedule];
   const depositAmt=total*rate;
   const balanceAmt=total*(1-rate);
   document.getElementById('depositInfoText').innerHTML=
-    `<strong>You go pay ${fmt(depositAmt)} now (30% deposit).</strong>`+
+    `<strong>You go pay ${fmt(depositAmt)} now (${Math.round(rate*100)}% deposit).</strong>`+
     (disc.discounted?` <span style="color:#2D6A4F">10% discount don apply — you save ${fmt(disc.amount)}!</span> `:'  ')+
     `Balance of ${fmt(balanceAmt)} go be due on delivery day. We go WhatsApp remind you.`;
 }
@@ -1099,7 +1204,7 @@ async function placeOrder(){
   if(!time) return showToast('Select a delivery time','error');
   const payload={
     vendor_id:currentVendor.id,
-    schedule_type:'daily',
+    schedule_type:selectedSchedule,
     delivery_date:date+'T'+time+':00',
     delivery_time:time,
     payment_type:selectedPayment,
@@ -1120,7 +1225,8 @@ function showConfirmation(order){
     ?`<div class="confirm-row" style="color:#2D6A4F;font-weight:500"><span>🏷️ 10% Discount Applied</span><span>−${fmt(order.discount_amount)}</span></div>`:'';
   document.getElementById('confirmBreakdown').innerHTML=`
     <div class="confirm-row"><span>Vendor</span><span>${esc(currentVendor.name)}</span></div>
-<div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
+    <div class="confirm-row"><span>Schedule</span><span style="text-transform:capitalize">${order.schedule_type}</span></div>
+    <div class="confirm-row"><span>Delivery</span><span>${fmtDate(order.delivery_date)} ${order.delivery_time||''}</span></div>
     ${discountRow}
     <div class="confirm-row"><span>Order Total</span><span>${fmt(order.total_price)}</span></div>
     <div class="confirm-row highlight"><span>${order.payment_type==='full'?'Amount to Pay':'Deposit to Pay'}</span><span>${fmt(order.deposit_amount)}</span></div>
@@ -1286,6 +1392,167 @@ async function confirmDelivery(orderRef){
     showToast('Delivery confirmed! Thank you 🎉','success');
     loadOrders();
   }catch(e){showToast(e.message,'error');}
+  showLoading(false);
+}
+
+
+// ─────────────────────────────────────────────
+// VENDOR DASHBOARD
+// ─────────────────────────────────────────────
+let vendorAllOrders = [];
+let currentVendorFilter = 'all';
+
+function isVendor(){ return currentUser && currentUser.role === 'vendor'; }
+
+function showVendorApp(){
+  // Show vendor nav items, hide customer ones
+  document.getElementById('bottomNav').classList.add('app-visible');
+  document.getElementById('bottomNav').style.removeProperty('display');
+  document.body.classList.add('logged-in');
+
+  // Show vendor nav, hide customer nav
+  const sbVendor = document.getElementById('sb-vendor');
+  const sbOrders = document.getElementById('sb-orders');
+  const bnVendor = document.getElementById('bn-vendor');
+  const bnOrders = document.getElementById('bn-orders');
+  if(sbVendor) sbVendor.style.display = 'flex';
+  if(sbOrders) sbOrders.style.display = 'none';
+  if(bnVendor) bnVendor.style.display = 'flex';
+  if(bnOrders) bnOrders.style.display = 'none';
+
+  // Update avatar
+  const init = (currentUser.name||'V')[0].toUpperCase();
+  const av = document.getElementById('vendorAvatarBtn');
+  const sav = document.getElementById('sidebarAvatar');
+  if(av) av.textContent = init;
+  if(sav) sav.textContent = init;
+  document.getElementById('sidebarName').textContent = currentUser.name||'';
+  document.getElementById('sidebarEmail').textContent = currentUser.email||'';
+
+  navTo('screen-vendor', 'sb-vendor');
+  loadVendorDashboard();
+}
+
+async function loadVendorDashboard(){
+  loadVendorStats();
+  loadVendorOrders();
+}
+
+async function loadVendorStats(){
+  try{
+    const s = await apiFetch('/vendor/stats');
+    document.getElementById('vstat-today-num').textContent = s.today_orders;
+    document.getElementById('vstat-pending-num').textContent = s.pending_dispatch;
+    document.getElementById('vstat-revenue').textContent = fmt(s.total_revenue);
+    document.getElementById('vstat-balance').textContent = fmt(s.pending_balance);
+  }catch(e){ console.warn('Stats error:', e.message); }
+}
+
+async function loadVendorOrders(){
+  const container = document.getElementById('vendorOrdersList');
+  container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">Loading...</div>';
+  try{
+    vendorAllOrders = await apiFetch('/vendor/orders');
+    renderVendorOrders(vendorAllOrders, currentVendorFilter);
+  }catch(e){
+    container.innerHTML = `<div class="empty-state"><p>${e.message}</p></div>`;
+  }
+}
+
+function filterVendorOrders(btn, filter){
+  currentVendorFilter = filter;
+  document.querySelectorAll('.vfilter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderVendorOrders(vendorAllOrders, filter);
+}
+
+function renderVendorOrders(orders, filter){
+  const container = document.getElementById('vendorOrdersList');
+  const filtered = filter === 'all' ? orders : orders.filter(o=>o.status===filter);
+
+  if(!filtered.length){
+    container.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📋</div>
+      <h3>No orders here</h3>
+      <p>No ${filter === 'all' ? '' : filter} orders yet.</p>
+    </div>`;
+    return;
+  }
+
+  const statusLabel = {
+    'pending':'Pending','confirmed':'To Dispatch','ordered':'Paid Full',
+    'dispatched':'Dispatched','delivered':'Delivered','cancelled':'Cancelled'
+  };
+
+  container.innerHTML = filtered.map(o => {
+    const isPaid     = o.deposit_paid && o.balance_paid;
+    const depositOnly= o.deposit_paid && !o.balance_paid;
+    const canDispatch= o.status === 'confirmed' || o.status === 'ordered';
+
+    const payBadge = isPaid
+      ? `<span class="vpay-badge vpay-fully-paid">Fully Paid</span>`
+      : depositOnly
+        ? `<span class="vpay-badge vpay-deposit-paid">Deposit Paid</span>
+           <span class="vpay-badge vpay-balance-due">Balance: ${fmt(o.balance_due)}</span>`
+        : `<span class="vpay-badge vpay-balance-due">Not Paid</span>`;
+
+    const dispatchBtn = canDispatch
+      ? `<button class="dispatch-btn" onclick="dispatchOrder('${o.order_ref}',this)">
+           🚀 Mark Dispatched
+         </button>`
+      : `<button class="dispatch-btn" disabled>${
+           o.status === 'dispatched' ? '✅ Dispatched' :
+           o.status === 'delivered'  ? '🎉 Delivered'  : o.status
+         }</button>`;
+
+    const notesHtml = o.notes
+      ? `<div class="vendor-notes">📝 ${esc(o.notes)}</div>` : '';
+
+    return `<div class="vendor-order-card" id="vcard-${o.order_ref}">
+      <div class="vendor-order-header">
+        <div>
+          <div class="vendor-order-ref">${o.order_ref}</div>
+          <div class="vendor-customer">${esc(o.customer_name)}</div>
+          <div class="vendor-customer-phone">📞 ${esc(o.customer_phone||'—')}</div>
+        </div>
+        <div class="status-badge status-${o.status}">${statusLabel[o.status]||o.status}</div>
+      </div>
+
+      <div class="vendor-items">
+        ${(o.items||[]).map(i=>`<div style="display:flex;justify-content:space-between">
+          <span>${esc(i.name)} × ${i.quantity}</span>
+          <span>${fmt(i.subtotal)}</span>
+        </div>`).join('')}
+      </div>
+
+      ${notesHtml}
+
+      <div class="vendor-payment-row">${payBadge}</div>
+
+      <div class="vendor-order-footer">
+        <div>
+          <div class="vendor-total">${fmt(o.total_price)}</div>
+          <div class="vendor-delivery">📅 ${fmtDate(o.delivery_date)} ${o.delivery_time||''}</div>
+        </div>
+        ${dispatchBtn}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function dispatchOrder(orderRef, btn){
+  btn.disabled = true;
+  btn.textContent = 'Dispatching...';
+  showLoading(true);
+  try{
+    await apiFetch(`/vendor/orders/${orderRef}/dispatch`, {method:'POST'});
+    showToast('Order dispatched! Customer has been notified 🚀','success');
+    loadVendorDashboard();
+  }catch(e){
+    showToast(e.message,'error');
+    btn.disabled = false;
+    btn.textContent = '🚀 Mark Dispatched';
+  }
   showLoading(false);
 }
 

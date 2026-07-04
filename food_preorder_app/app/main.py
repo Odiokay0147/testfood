@@ -162,7 +162,24 @@ def _reseed_if_needed(db):
             db.add(models.Meal(name=name, description=desc, price=price, category=cat, vendor_id=ucc.id))
 
         db.commit()
-        print("✅ Seed data created — Chef'N (9 meals) + Ur Cravings Crunches (28 items)")
+
+        # Create vendor accounts (only if not already existing)
+        from app.auth import hash_password as hp
+        vendors_in_db = db.query(models.Vendor).all()
+        credentials = [
+            ("Chef'N Admin",            "chefn@prepandgo.com",      "+2348000000001", vendors_in_db[0].id),
+            ("Ur Cravings Admin",       "ucc@prepandgo.com",        "+2348000000002", vendors_in_db[1].id),
+        ]
+        for vname, vemail, vphone, vid in credentials:
+            exists = db.query(models.User).filter(models.User.email == vemail).first()
+            if not exists:
+                db.add(models.User(
+                    name=vname, email=vemail, phone=vphone,
+                    password=hp("vendor2024"), role="vendor", vendor_id=vid
+                ))
+        db.commit()
+        print("✅ Seed data created — Chef\'N (9 meals) + Ur Cravings Crunches (28 items)")
+        print("✅ Vendor accounts: chefn@prepandgo.com / ucc@prepandgo.com (password: vendor2024)")
 
 
 @app.on_event("shutdown")
@@ -202,7 +219,13 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": {"id": db_user.id, "name": db_user.name, "email": db_user.email},
+        "user": {
+            "id": db_user.id,
+            "name": db_user.name,
+            "email": db_user.email,
+            "role": db_user.role or "customer",
+            "vendor_id": db_user.vendor_id,
+        },
     }
 
 
@@ -686,6 +709,156 @@ def order_payments(
         raise HTTPException(403, "Access denied")
     return crud.get_payments_for_order(db, order.id)
 
+
+
+# ─────────────────────────────────────────────
+# VENDOR DASHBOARD
+# ─────────────────────────────────────────────
+
+@app.get("/vendor/me")
+def vendor_profile(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Return vendor profile + their vendor details."""
+    if current_user.role != "vendor":
+        raise HTTPException(403, "Not a vendor account")
+    vendor = db.query(models.Vendor).filter(models.Vendor.id == current_user.vendor_id).first()
+    if not vendor:
+        raise HTTPException(404, "Vendor not found")
+    return {
+        "user_id": current_user.id,
+        "name": current_user.name,
+        "vendor_id": vendor.id,
+        "vendor_name": vendor.name,
+        "vendor_description": vendor.description,
+    }
+
+
+@app.get("/vendor/orders")
+def vendor_dashboard_orders(
+    status: Optional[str] = None,
+    date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """
+    Vendor sees only their own orders.
+    Filter by ?status=confirmed or ?date=2026-06-01
+    """
+    if current_user.role != "vendor":
+        raise HTTPException(403, "Not a vendor account")
+
+    from datetime import datetime, timedelta
+    q = db.query(models.Order).filter(models.Order.vendor_id == current_user.vendor_id)
+
+    if status:
+        q = q.filter(models.Order.status == status)
+    if date:
+        try:
+            d = datetime.strptime(date, "%Y-%m-%d")
+            q = q.filter(
+                models.Order.delivery_date >= d,
+                models.Order.delivery_date < d + timedelta(days=1)
+            )
+        except ValueError:
+            raise HTTPException(400, "Invalid date format — use YYYY-MM-DD")
+
+    orders = q.order_by(models.Order.delivery_date.asc()).all()
+
+    result = []
+    for o in orders:
+        result.append({
+            "id": o.id,
+            "order_ref": o.order_ref,
+            "customer_name": o.user.name if o.user else "—",
+            "customer_phone": o.user.phone if o.user else "—",
+            "total_price": o.total_price,
+            "deposit_amount": o.deposit_amount,
+            "balance_due": o.balance_due,
+            "payment_type": o.payment_type,
+            "deposit_paid": o.deposit_paid,
+            "balance_paid": o.balance_paid,
+            "status": o.status,
+            "delivery_date": o.delivery_date.isoformat() if o.delivery_date else None,
+            "delivery_time": o.delivery_time,
+            "notes": o.notes,
+            "items": [
+                {
+                    "name": item.meal.name if item.meal else f"Item #{item.meal_id}",
+                    "quantity": item.quantity,
+                    "subtotal": item.subtotal,
+                }
+                for item in o.items
+            ],
+        })
+    return result
+
+
+@app.get("/vendor/stats")
+def vendor_stats(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Summary stats for the vendor's dashboard."""
+    if current_user.role != "vendor":
+        raise HTTPException(403, "Not a vendor account")
+
+    from datetime import datetime, timedelta
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    tomorrow = today + timedelta(days=1)
+
+    all_orders = db.query(models.Order).filter(
+        models.Order.vendor_id == current_user.vendor_id
+    ).all()
+
+    today_orders     = [o for o in all_orders if today <= o.delivery_date < tomorrow]
+    pending_dispatch = [o for o in all_orders if o.status == "confirmed"]
+    total_revenue    = sum(o.deposit_amount for o in all_orders if o.deposit_paid)
+    pending_balance  = sum(o.balance_due for o in all_orders if o.deposit_paid and not o.balance_paid)
+
+    return {
+        "total_orders":      len(all_orders),
+        "today_orders":      len(today_orders),
+        "pending_dispatch":  len(pending_dispatch),
+        "total_revenue":     round(total_revenue, 2),
+        "pending_balance":   round(pending_balance, 2),
+    }
+
+
+@app.post("/vendor/orders/{order_ref}/dispatch")
+def dispatch_order(
+    order_ref: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Vendor marks an order as dispatched — triggers WhatsApp notification to customer."""
+    if current_user.role != "vendor":
+        raise HTTPException(403, "Not a vendor account")
+
+    order = crud.get_order_by_ref(db, order_ref)
+    if order.vendor_id != current_user.vendor_id:
+        raise HTTPException(403, "This order doesn't belong to your store")
+    if order.status not in ("confirmed", "ordered"):
+        raise HTTPException(400, f"Cannot dispatch — order is '{order.status}'")
+
+    order.status = "dispatched"
+    db.commit()
+
+    # WhatsApp dispatch notification
+    if order.user and order.user.phone:
+        try:
+            send_dispatch_notification(
+                customer_name=order.user.name,
+                phone=order.user.phone,
+                order_ref=order_ref,
+                vendor_name=order.vendor.name,
+                delivery_time=order.delivery_time or "soon",
+            )
+        except Exception as e:
+            print(f"[Dispatch] WhatsApp failed (non-fatal): {e}")
+
+    return {"message": f"Order {order_ref} marked as dispatched ✅", "status": "dispatched"}
 
 # ─────────────────────────────────────────────
 # REMINDERS

@@ -33,6 +33,8 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         phone=user.phone,
         password=hash_password(user.password),
+        role=getattr(user, 'role', 'customer'),
+        vendor_id=getattr(user, 'vendor_id', None),
     )
     db.add(db_user)
     db.commit()

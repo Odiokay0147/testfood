@@ -23,6 +23,8 @@ class UserOut(BaseModel):
     name: str
     email: str
     phone: str
+    role: str = "customer"
+    vendor_id: Optional[int] = None
 
     class Config:
         from_attributes = True
