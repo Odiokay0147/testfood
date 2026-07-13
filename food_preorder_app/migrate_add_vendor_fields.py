@@ -26,14 +26,14 @@ def migrate():
     # Add `role` if missing
     if "role" not in existing_columns:
         cursor.execute("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'customer';")
-        print("✅ Added column: role (default='customer')")
+        print("Added column: role (default='customer')")
     else:
         print("⏭️  Column already exists: role")
 
     # Add `vendor_id` if missing
     if "vendor_id" not in existing_columns:
         cursor.execute("ALTER TABLE users ADD COLUMN vendor_id INTEGER REFERENCES vendors(id);")
-        print("✅ Added column: vendor_id (nullable)")
+        print("Added column: vendor_id (nullable)")
     else:
         print("⏭️  Column already exists: vendor_id")
 

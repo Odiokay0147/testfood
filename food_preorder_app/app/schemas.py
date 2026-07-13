@@ -23,8 +23,6 @@ class UserOut(BaseModel):
     name: str
     email: str
     phone: str
-    role: str = "customer"
-    vendor_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -95,13 +93,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItemIn]
     notes: Optional[str] = None
 
-    @validator("schedule_type")
-    def validate_schedule(cls, v):
-        if v not in ("hourly", "daily", "weekly"):
-            raise ValueError("schedule_type must be hourly, daily, or weekly")
-        return v
-
-    @validator("payment_type")
+@validator("payment_type")
     def validate_payment_type(cls, v):
         if v not in ("deposit", "full"):
             raise ValueError("payment_type must be deposit or full")

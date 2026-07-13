@@ -11,11 +11,7 @@ from app.auth import hash_password, verify_password
 # ─────────────────────────────────────────────
 # DEPOSIT RATE BY SCHEDULE TYPE
 # ─────────────────────────────────────────────
-DEPOSIT_RATES = {
-    "hourly": 0.30,   # 30% for same-day / hourly bookings
-    "daily":  0.40,   # 40% for next-day bookings
-    "weekly": 0.50,   # 50% for weekly plans
-}
+DEPOSIT_RATE = 0.30  # Fixed 30% deposit for all orders
 
 
 def _generate_order_ref() -> str:
@@ -33,8 +29,6 @@ def create_user(db: Session, user: schemas.UserCreate) -> models.User:
         email=user.email,
         phone=user.phone,
         password=hash_password(user.password),
-        role=getattr(user, 'role', 'customer'),
-        vendor_id=getattr(user, 'vendor_id', None),
     )
     db.add(db_user)
     db.commit()
@@ -164,7 +158,7 @@ def create_order(db: Session, user_id: int, order: schemas.OrderCreate) -> model
         deposit_amount = total_price
         balance_due = 0.0
     else:
-        rate = DEPOSIT_RATES[order.schedule_type]
+        rate = DEPOSIT_RATE
         deposit_amount = round(total_price * rate, 2)
         balance_due = round(total_price - deposit_amount, 2)
 
