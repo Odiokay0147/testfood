@@ -93,7 +93,7 @@ class OrderCreate(BaseModel):
     items: List[OrderItemIn]
     notes: Optional[str] = None
 
-@validator("payment_type")
+    @validator("payment_type")
     def validate_payment_type(cls, v):
         if v not in ("deposit", "full"):
             raise ValueError("payment_type must be deposit or full")
